@@ -125,10 +125,10 @@ class PyramidPoolingModule(nn.Module):
 class UltraAccurateUNet(nn.Module):
     """Ultra-accurate UNet with enhanced attention and multi-scale processing."""
     
-    def __init__(self, encoder_name: str = 'timm-efficientnet-b5', encoder_weights: str = 'imagenet'):
+    def __init__(self, encoder_name: str = 'timm-efficientnet-b2', encoder_weights: str = 'imagenet'):
         super().__init__()
         
-        # Enhanced backbone with pyramid pooling
+        # Memory-efficient backbone for 4GB GPU
         self.backbone = smp.UnetPlusPlus(  # UNet++ for better feature reuse
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,

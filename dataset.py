@@ -46,7 +46,7 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=0.5),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=0.6),
-            A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.3),
+            A.ElasticTransform(alpha=1, sigma=50, p=0.3),
             A.OneOf([
                 A.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1, p=1.0),
                 A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=1.0),
@@ -62,7 +62,7 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
                 A.GaussianBlur(blur_limit=(3, 5), p=1.0),
                 A.MotionBlur(blur_limit=3, p=1.0)
             ], p=0.3),
-            A.CoarseDropout(max_holes=8, max_height=16, max_width=16, min_holes=1, min_height=4, min_width=4, fill_value=0, p=0.3),
+            A.CoarseDropout(max_holes=8, max_height=16, max_width=16, p=0.3),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])

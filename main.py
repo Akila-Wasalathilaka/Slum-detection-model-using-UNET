@@ -31,13 +31,25 @@ def setup_ultra_environment():
     os.makedirs(os.path.join(config.RESULTS_DIR, 'maps'), exist_ok=True)
     os.makedirs(os.path.join(config.RESULTS_DIR, 'visualizations'), exist_ok=True)
     
-    # Setup device
+    # Setup device with memory optimization
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"🚀 Using device: {device}")
     
     if torch.cuda.is_available():
+        # Clear GPU memory
+        torch.cuda.empty_cache()
+        
+        # Set memory fraction to prevent OOM
+        torch.cuda.set_per_process_memory_fraction(0.8)  # Use 80% of GPU memory
+        
         print(f"💻 GPU: {torch.cuda.get_device_name()}")
         print(f"🔢 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+        
+        # Enable memory efficient attention if available
+        try:
+            torch.backends.cuda.enable_flash_sdp(True)
+        except:
+            pass
     
     return device
 

@@ -20,9 +20,9 @@ class UltraAccurateSlumConfig:
     TEST_IMG_DIR = DATA_DIR / "test" / "images"
     TEST_MASK_DIR = DATA_DIR / "test" / "masks"
     
-    # Ultra-high resolution for maximum accuracy
-    IMAGE_SIZES = [256, 320, 384, 512]  # Multi-scale ultra-high resolution
-    PRIMARY_SIZE = 384  # Increased from 160 for maximum detail capture
+    # Optimized resolution for 4GB GPU memory
+    IMAGE_SIZES = [160, 224, 256, 320]  # Reduced for memory efficiency
+    PRIMARY_SIZE = 224  # Reduced from 384 to fit in 4GB GPU
     INPUT_CHANNELS = 3
     OUTPUT_CHANNELS = 1
     
@@ -37,9 +37,9 @@ class UltraAccurateSlumConfig:
     }
     DEFAULT_THRESHOLD = 'balanced'
     
-    # Ultra-optimized training parameters
-    BATCH_SIZE = 8              # Reduced for higher resolution
-    EPOCHS = 120                # Increased for better convergence
+    # Optimized training parameters for 4GB GPU
+    BATCH_SIZE = 4              # Reduced from 8 for memory efficiency
+    EPOCHS = 120                # Keep the same
     NUM_EPOCHS = 120            # Add this for compatibility
     LEARNING_RATE = 5e-5        # More conservative for stability
     WEIGHT_DECAY = 2e-4         # Increased regularization
@@ -50,9 +50,9 @@ class UltraAccurateSlumConfig:
     MIN_DELTA = 5e-5
     GRAD_CLIP_VALUE = 0.5       # Tighter gradient clipping
     
-    # Hardware optimization for high resolution
-    NUM_WORKERS = 6 if os.cpu_count() >= 6 else 4
-    PIN_MEMORY = False  # Disable pin_memory for CPU training
+    # Hardware optimization for 4GB GPU
+    NUM_WORKERS = 2 if os.cpu_count() >= 4 else 1  # Reduced workers
+    PIN_MEMORY = False  # Disable pin_memory for memory efficiency
     
     # Reproducibility
     SEED = 42
@@ -74,13 +74,12 @@ class UltraAccurateSlumConfig:
     TVERSKY_ALPHA = 0.7         # Favor recall for slum detection
     TVERSKY_BETA = 0.3
     
-    # Ultra-high performance encoder options
+    # Memory-efficient encoder for 4GB GPU
     ENCODERS = [
-        'timm-efficientnet-b5',     # Best performance for high-res
-        'timm-efficientnet-b4',     # Balanced performance
-        'timm-regnety_032',         # Fast and accurate
-        'resnet101',                # Robust baseline
-        'timm-convnext_base'        # State-of-the-art CNN
+        'timm-efficientnet-b2',     # Smaller than b5 for memory efficiency
+        'timm-efficientnet-b1',     # Even smaller option
+        'resnet50',                 # Lighter than resnet101
+        'timm-regnety_016',         # Smaller RegNet
     ]
     ENCODER_WEIGHTS = 'imagenet'
     

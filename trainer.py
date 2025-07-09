@@ -44,7 +44,7 @@ class UltraAccurateTrainer:
         
         # Mixed precision scaler with device detection
         if self.device.type == 'cuda':
-            self.scaler = torch.cuda.amp.GradScaler()
+            self.scaler = torch.amp.GradScaler('cuda')
             self.use_amp = True
         else:
             self.scaler = None
@@ -58,6 +58,10 @@ class UltraAccurateTrainer:
         self.val_precisions = []
         self.val_recalls = []
         self.val_f1s = []
+        
+        # Memory management
+        if self.device.type == 'cuda':
+            torch.cuda.empty_cache()
         
         # Ultra-accurate model tracking
         self.best_score = 0.0
@@ -130,7 +134,7 @@ class UltraAccurateTrainer:
             self.optimizer.zero_grad()
             
             if self.use_amp:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast('cuda'):
                     outputs = self.model(images)
                     if isinstance(outputs, tuple):
                         main_output, aux1, aux2, aux3 = outputs
@@ -176,6 +180,10 @@ class UltraAccurateTrainer:
             epoch_loss += loss.item()
             self.current_step += 1
             
+            # Memory cleanup for small GPU
+            if self.device.type == 'cuda':
+                torch.cuda.empty_cache()
+            
             if batch_idx % 10 == 0:
                 current_lr = self.optimizer.param_groups[0]['lr']
                 pbar.set_postfix({
@@ -197,7 +205,7 @@ class UltraAccurateTrainer:
                 masks = masks.to(self.device, non_blocking=True)
                 
                 if self.use_amp:
-                    with torch.cuda.amp.autocast():
+                    with torch.amp.autocast('cuda'):
                         outputs = self.model(images)
                         if isinstance(outputs, tuple):
                             outputs = outputs[0]  # Use main output for validation
