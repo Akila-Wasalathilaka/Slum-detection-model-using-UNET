@@ -41,7 +41,7 @@ class ProductionDataset(Dataset):
 def get_production_augmentations(image_size: int, phase: str = 'train'):
     if phase == 'train':
         return A.Compose([
-            A.RandomResizedCrop(image_size, image_size, scale=(0.8, 1.2), interpolation=cv2.INTER_LINEAR, p=0.5),
+            A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.0), interpolation=cv2.INTER_LINEAR, p=0.5),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=0.5),
@@ -72,7 +72,7 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
         ])
     else:
         return A.Compose([
-            A.Resize(image_size, image_size, interpolation=cv2.INTER_LINEAR),
+            A.Resize(height=image_size, width=image_size, interpolation=cv2.INTER_LINEAR),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
