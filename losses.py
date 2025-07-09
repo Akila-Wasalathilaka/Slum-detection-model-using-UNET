@@ -73,12 +73,14 @@ class BoundaryLoss(nn.Module):
             dist_transform = cv2.distanceTransform(1 - boundary_mask, cv2.DIST_L2, 3)
             weight = np.exp(-dist_transform / self.theta0) + 0.1
             
-            # Boundary-weighted BCE
+            # Boundary-weighted BCE (using logits-safe version)
             target_torch = torch.from_numpy(target_np).float().to(inputs.device)
             pred_torch = torch.from_numpy(pred_np).float().to(inputs.device)
             weight_torch = torch.from_numpy(weight).float().to(inputs.device)
             
-            bce = F.binary_cross_entropy(pred_torch, target_torch, reduction='none')
+            # Convert to logits for safe autocast
+            pred_logits = torch.logit(torch.clamp(pred_torch, 1e-7, 1-1e-7))
+            bce = F.binary_cross_entropy_with_logits(pred_logits, target_torch, reduction='none')
             weighted_bce = (bce * weight_torch).mean()
             boundary_loss += weighted_bce
         

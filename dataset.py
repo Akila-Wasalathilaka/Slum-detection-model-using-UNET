@@ -62,7 +62,7 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
                 A.GaussianBlur(blur_limit=(3, 5), p=1.0),
                 A.MotionBlur(blur_limit=3, p=1.0)
             ], p=0.3),
-            A.CoarseDropout(max_holes=8, max_height=16, max_width=16, p=0.3),
+            A.CoarseDropout(p=0.3),  # Use default parameters to avoid warnings
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])

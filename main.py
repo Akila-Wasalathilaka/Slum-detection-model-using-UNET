@@ -295,7 +295,7 @@ def run_inference_on_custom_image(device: torch.device, image_path: str, model_p
 
 def print_ultra_banner():
     """Print ultra-accurate slum detection banner."""
-    banner = """
+    banner = f"""
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                               ║
 ║                    🏘️  ULTRA-ACCURATE SLUM DETECTION  🏘️                     ║
@@ -304,10 +304,10 @@ def print_ultra_banner():
 ║                     With Geographic Clustering & Visualization               ║
 ║                                                                               ║
 ║  Features:                                                                    ║
-║  • Ultra-high resolution processing (384x384)                                ║
+║  • Optimized resolution processing ({config.PRIMARY_SIZE}x{config.PRIMARY_SIZE})                        ║
 ║  • Advanced attention mechanisms                                             ║
 ║  • Test Time Augmentation with 12 transforms                                 ║
-║  • Boundary-aware loss functions                                             ║
+║  • Memory-efficient for 4GB GPU                                              ║
 ║  • Geographic clustering analysis                                            ║
 ║  • Reference-quality slum mapping                                            ║
 ║                                                                               ║
