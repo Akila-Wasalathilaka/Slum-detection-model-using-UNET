@@ -42,8 +42,13 @@ class UltraAccurateTrainer:
             eta_min=1e-6
         )
         
-        # Mixed precision scaler with better settings
-        self.scaler = torch.cuda.amp.GradScaler()
+        # Mixed precision scaler with device detection
+        if self.device.type == 'cuda':
+            self.scaler = torch.cuda.amp.GradScaler()
+            self.use_amp = True
+        else:
+            self.scaler = None
+            self.use_amp = False
         
         # Enhanced metrics tracking
         self.train_losses = []
@@ -124,7 +129,20 @@ class UltraAccurateTrainer:
             
             self.optimizer.zero_grad()
             
-            with torch.cuda.amp.autocast():
+            if self.use_amp:
+                with torch.cuda.amp.autocast():
+                    outputs = self.model(images)
+                    if isinstance(outputs, tuple):
+                        main_output, aux1, aux2, aux3 = outputs
+                        # Enhanced deep supervision with progressive weighting
+                        main_loss = self.criterion(main_output, masks)
+                        aux_loss1 = self.criterion(aux1, masks) * 0.5
+                        aux_loss2 = self.criterion(aux2, masks) * 0.3
+                        aux_loss3 = self.criterion(aux3, masks) * 0.2
+                        loss = main_loss + aux_loss1 + aux_loss2 + aux_loss3
+                    else:
+                        loss = self.criterion(outputs, masks)
+            else:
                 outputs = self.model(images)
                 if isinstance(outputs, tuple):
                     main_output, aux1, aux2, aux3 = outputs
@@ -137,14 +155,19 @@ class UltraAccurateTrainer:
                 else:
                     loss = self.criterion(outputs, masks)
             
-            self.scaler.scale(loss).backward()
-            
-            # Enhanced gradient clipping
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), config.GRAD_CLIP_VALUE)
-            
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            if self.use_amp:
+                self.scaler.scale(loss).backward()
+                
+                # Enhanced gradient clipping
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), config.GRAD_CLIP_VALUE)
+                
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), config.GRAD_CLIP_VALUE)
+                self.optimizer.step()
             
             # Update scheduler after warmup
             if self.current_step >= self.warmup_steps:
@@ -173,7 +196,14 @@ class UltraAccurateTrainer:
                 images = images.to(self.device, non_blocking=True)
                 masks = masks.to(self.device, non_blocking=True)
                 
-                with torch.cuda.amp.autocast():
+                if self.use_amp:
+                    with torch.cuda.amp.autocast():
+                        outputs = self.model(images)
+                        if isinstance(outputs, tuple):
+                            outputs = outputs[0]  # Use main output for validation
+                        
+                        loss = self.criterion(outputs, masks)
+                else:
                     outputs = self.model(images)
                     if isinstance(outputs, tuple):
                         outputs = outputs[0]  # Use main output for validation

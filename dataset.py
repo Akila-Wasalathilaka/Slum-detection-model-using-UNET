@@ -41,7 +41,7 @@ class ProductionDataset(Dataset):
 def get_production_augmentations(image_size: int, phase: str = 'train'):
     if phase == 'train':
         return A.Compose([
-            A.RandomResizedCrop(height=image_size, width=image_size, scale=(0.8, 1.0), interpolation=cv2.INTER_LINEAR, p=0.5),
+            A.Resize(height=image_size, width=image_size, interpolation=cv2.INTER_LINEAR),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=0.5),
@@ -53,8 +53,8 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
                 A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1.0)
             ], p=0.7),
             A.OneOf([
-                A.GaussNoise(var_limit=(10, 50), p=1.0),
-                A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5), p=1.0),
+                A.GaussNoise(p=1.0),
+                A.ISONoise(p=1.0),
                 A.MultiplicativeNoise(multiplier=(0.9, 1.1), p=1.0)
             ], p=0.4),
             A.OneOf([
@@ -62,10 +62,6 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
                 A.GaussianBlur(blur_limit=(3, 5), p=1.0),
                 A.MotionBlur(blur_limit=3, p=1.0)
             ], p=0.3),
-            A.OneOf([
-                A.RandomShadow(shadow_roi=(0, 0.5, 1, 1), num_shadows_lower=1, num_shadows_upper=2, p=1.0),
-                A.RandomFog(fog_coef_lower=0.3, fog_coef_upper=0.7, p=1.0)
-            ], p=0.2),
             A.CoarseDropout(max_holes=8, max_height=16, max_width=16, min_holes=1, min_height=4, min_width=4, fill_value=0, p=0.3),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()

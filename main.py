@@ -51,11 +51,11 @@ def train_ultra_model(device: torch.device) -> Dict:
     # Initialize model
     model = UltraAccurateUNet().to(device)
     
-    # Initialize trainer
-    trainer = UltraAccurateTrainer(model, device)
+    # Initialize trainer with correct arguments
+    trainer = UltraAccurateTrainer(model, train_loader, val_loader, device)
     
     # Train model
-    results = trainer.train(train_loader, val_loader, config.NUM_EPOCHS)
+    results = trainer.train()  # No parameters needed
     
     print("✅ Training completed successfully!")
     return results

@@ -52,7 +52,7 @@ class UltraAccurateSlumConfig:
     
     # Hardware optimization for high resolution
     NUM_WORKERS = 6 if os.cpu_count() >= 6 else 4
-    PIN_MEMORY = True
+    PIN_MEMORY = False  # Disable pin_memory for CPU training
     
     # Reproducibility
     SEED = 42
