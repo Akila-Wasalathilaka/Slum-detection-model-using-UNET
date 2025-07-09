@@ -1,7 +1,7 @@
 """
 Dataset and augmentation logic for production slum detection.
 """
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import numpy as np
 import cv2
@@ -76,3 +76,60 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
+
+def get_ultra_data_loaders():
+    """Get ultra-accurate data loaders for training, validation, and testing."""
+    
+    # Get transforms
+    train_transform = get_production_augmentations(config.PRIMARY_SIZE, 'train')
+    val_transform = get_production_augmentations(config.PRIMARY_SIZE, 'val')
+    test_transform = get_production_augmentations(config.PRIMARY_SIZE, 'val')
+    
+    # Create datasets
+    train_dataset = ProductionDataset(
+        image_dir=config.TRAIN_IMG_DIR,
+        mask_dir=config.TRAIN_MASK_DIR,
+        transform=train_transform,
+        image_size=config.PRIMARY_SIZE
+    )
+    
+    val_dataset = ProductionDataset(
+        image_dir=config.VAL_IMG_DIR,
+        mask_dir=config.VAL_MASK_DIR,
+        transform=val_transform,
+        image_size=config.PRIMARY_SIZE
+    )
+    
+    test_dataset = ProductionDataset(
+        image_dir=config.TEST_IMG_DIR,
+        mask_dir=config.TEST_MASK_DIR,
+        transform=test_transform,
+        image_size=config.PRIMARY_SIZE
+    )
+    
+    # Create data loaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config.BATCH_SIZE,
+        shuffle=True,
+        num_workers=config.NUM_WORKERS,
+        pin_memory=config.PIN_MEMORY
+    )
+    
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=config.BATCH_SIZE,
+        shuffle=False,
+        num_workers=config.NUM_WORKERS,
+        pin_memory=config.PIN_MEMORY
+    )
+    
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=config.BATCH_SIZE,
+        shuffle=False,
+        num_workers=config.NUM_WORKERS,
+        pin_memory=config.PIN_MEMORY
+    )
+    
+    return train_loader, val_loader, test_loader

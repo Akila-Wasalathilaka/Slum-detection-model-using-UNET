@@ -118,8 +118,24 @@ class UltraTverskyLoss(nn.Module):
 class UltraSlumDetectionLoss(nn.Module):
     """Ultra-accurate combined loss function for slum detection."""
     
-    def __init__(self, weights: Dict[str, float], config):
+    def __init__(self, weights: Dict[str, float] = None, config = None):
         super().__init__()
+        
+        # Default weights if not provided
+        if weights is None:
+            weights = {
+                'dice': 0.35,
+                'focal': 0.25, 
+                'bce': 0.15,
+                'tversky': 0.15,
+                'boundary': 0.1
+            }
+        
+        # Default config values if not provided
+        if config is None:
+            from config import config as default_config
+            config = default_config
+            
         self.weights = weights
         
         # Initialize ultra-optimized loss components

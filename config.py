@@ -8,8 +8,10 @@ class UltraAccurateSlumConfig:
     """Ultra-accurate slum detection configuration - Best of the best!"""
     BASE_DIR = Path(os.getcwd())
     DATA_DIR = BASE_DIR / "data_preprocessed"
+    DATA_ROOT = DATA_DIR  # Add this for compatibility
     RESULTS_DIR = BASE_DIR / "results_production"
     MODEL_DIR = BASE_DIR / "models_production"
+    MODEL_SAVE_DIR = MODEL_DIR  # Add this for compatibility
     CHECKPOINT_DIR = MODEL_DIR / "checkpoints"
     TRAIN_IMG_DIR = DATA_DIR / "train" / "images"
     TRAIN_MASK_DIR = DATA_DIR / "train" / "masks"
@@ -38,6 +40,7 @@ class UltraAccurateSlumConfig:
     # Ultra-optimized training parameters
     BATCH_SIZE = 8              # Reduced for higher resolution
     EPOCHS = 120                # Increased for better convergence
+    NUM_EPOCHS = 120            # Add this for compatibility
     LEARNING_RATE = 5e-5        # More conservative for stability
     WEIGHT_DECAY = 2e-4         # Increased regularization
     
