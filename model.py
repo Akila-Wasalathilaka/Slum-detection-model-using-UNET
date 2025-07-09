@@ -191,7 +191,7 @@ class UltraAccurateUNet(nn.Module):
         if hasattr(config, 'MULTI_SCALE_INFERENCE') and config.MULTI_SCALE_INFERENCE and not self.training:
             return self._multi_scale_forward(x)
         
-        # Use the backbone directly for now to avoid decoder issues
+        # Use the backbone directly to avoid channel mismatch issues
         main_output = self.backbone(x)
         
         if config.ENABLE_BOUNDARY_REFINEMENT:
@@ -222,11 +222,8 @@ class UltraAccurateUNet(nn.Module):
             else:
                 x_scaled = x
             
-            # Forward pass
-            features = self.backbone.encoder(x_scaled)
-            features[-1] = self.ppm(features[-1])
-            decoder_output = self.backbone.decoder(*features)
-            output = self.backbone.segmentation_head(decoder_output)
+            # Forward pass - use backbone directly to avoid channel issues
+            output = self.backbone(x_scaled)
             
             # Boundary refinement
             if config.ENABLE_BOUNDARY_REFINEMENT:

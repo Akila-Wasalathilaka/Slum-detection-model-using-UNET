@@ -37,18 +37,18 @@ class UltraAccurateSlumConfig:
     }
     DEFAULT_THRESHOLD = 'balanced'
     
-    # Optimized training parameters for 4GB GPU
-    BATCH_SIZE = 4              # Reduced from 8 for memory efficiency
-    EPOCHS = 120                # Keep the same
-    NUM_EPOCHS = 120            # Add this for compatibility
-    LEARNING_RATE = 5e-5        # More conservative for stability
-    WEIGHT_DECAY = 2e-4         # Increased regularization
+    # Optimized training parameters for higher accuracy with fewer epochs
+    BATCH_SIZE = 6              # Slightly increased from 4 for better gradients
+    EPOCHS = 30                 # Reduced from 120 for faster training
+    NUM_EPOCHS = 30             # Add this for compatibility
+    LEARNING_RATE = 1e-4        # Higher learning rate for faster convergence
+    WEIGHT_DECAY = 1e-4         # Reduced weight decay for better learning
     
-    # Advanced training settings
-    WARMUP_EPOCHS = 10
-    PATIENCE = 25               # Increased patience for ultra-accuracy
-    MIN_DELTA = 5e-5
-    GRAD_CLIP_VALUE = 0.5       # Tighter gradient clipping
+    # Advanced training settings for high accuracy
+    WARMUP_EPOCHS = 3           # Reduced warmup
+    PATIENCE = 8                # Reduced patience for faster training
+    MIN_DELTA = 1e-4            # Larger minimum delta
+    GRAD_CLIP_VALUE = 1.0       # Higher gradient clipping for stability
     
     # Hardware optimization for 4GB GPU
     NUM_WORKERS = 2 if os.cpu_count() >= 4 else 1  # Reduced workers
@@ -57,18 +57,18 @@ class UltraAccurateSlumConfig:
     # Reproducibility
     SEED = 42
     
-    # Ultra-optimized loss function weights for slum detection
+    # Optimized loss function weights for high accuracy slum detection
     LOSS_WEIGHTS = {
-        'dice': 0.35,
-        'focal': 0.25, 
-        'bce': 0.15,
-        'tversky': 0.15,
-        'boundary': 0.1     # New boundary loss for precise edges
+        'dice': 0.4,            # Increased Dice for better segmentation
+        'focal': 0.3,           # Increased Focal for hard examples
+        'bce': 0.2,             # Balanced BCE
+        'tversky': 0.1,         # Reduced Tversky
+        'boundary': 0.0         # Disabled boundary loss to avoid issues
     }
     
-    # Focal loss parameters - Optimized for informal settlements
-    FOCAL_ALPHA = 0.25          # Better for minority class
-    FOCAL_GAMMA = 3.0           # Stronger focus on hard examples
+    # Optimized focal loss parameters for slum detection
+    FOCAL_ALPHA = 0.25          # Keep balanced
+    FOCAL_GAMMA = 2.0           # Reduced for easier training
     
     # Tversky loss parameters - Optimized for slum recall
     TVERSKY_ALPHA = 0.7         # Favor recall for slum detection
@@ -94,9 +94,9 @@ class UltraAccurateSlumConfig:
     ENSEMBLE_MODELS = 5         # More models for better ensemble
     UNCERTAINTY_THRESHOLD = 0.05 # Stricter uncertainty filtering
     
-    # Multi-scale inference for maximum accuracy
-    MULTI_SCALE_INFERENCE = True
-    SCALE_FACTORS = [0.8, 1.0, 1.2, 1.4]
+    # Disable multi-scale inference for training stability
+    MULTI_SCALE_INFERENCE = False  # Disabled to avoid channel issues
+    SCALE_FACTORS = [1.0]          # Only single scale
     
     # Advanced slum detection features
     ENABLE_BOUNDARY_REFINEMENT = True

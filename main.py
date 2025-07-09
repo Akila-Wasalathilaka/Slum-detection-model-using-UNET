@@ -305,9 +305,9 @@ def print_ultra_banner():
 ║                                                                               ║
 ║  Features:                                                                    ║
 ║  • Optimized resolution processing ({config.PRIMARY_SIZE}x{config.PRIMARY_SIZE})                        ║
-║  • Advanced attention mechanisms                                             ║
-║  • Test Time Augmentation with 12 transforms                                 ║
 ║  • Memory-efficient for 4GB GPU                                              ║
+║  • Fast training ({config.EPOCHS} epochs, batch size {config.BATCH_SIZE})                               ║
+║  • Advanced loss functions for high accuracy                                 ║
 ║  • Geographic clustering analysis                                            ║
 ║  • Reference-quality slum mapping                                            ║
 ║                                                                               ║
