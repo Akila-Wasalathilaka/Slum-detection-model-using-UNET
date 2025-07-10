@@ -37,12 +37,12 @@ class UltraAccurateSlumConfig:
     }
     DEFAULT_THRESHOLD = 'balanced'
     
-    # Optimized training parameters for higher accuracy with fewer epochs
-    BATCH_SIZE = 6              # Slightly increased from 4 for better gradients
-    EPOCHS = 30                 # Reduced from 120 for faster training
-    NUM_EPOCHS = 30             # Add this for compatibility
-    LEARNING_RATE = 1e-4        # Higher learning rate for faster convergence
-    WEIGHT_DECAY = 1e-4         # Reduced weight decay for better learning
+    # Re-optimized training parameters for better accuracy
+    BATCH_SIZE = 8              # Increased for better gradient estimates
+    EPOCHS = 50                 # Increased training time
+    NUM_EPOCHS = 50             # Add this for compatibility
+    LEARNING_RATE = 3e-4        # Increased learning rate with warm-up
+    WEIGHT_DECAY = 2e-4         # Slightly increased regularization
     
     # Advanced training settings for high accuracy
     WARMUP_EPOCHS = 3           # Reduced warmup
@@ -57,13 +57,13 @@ class UltraAccurateSlumConfig:
     # Reproducibility
     SEED = 42
     
-    # Optimized loss function weights for high accuracy slum detection
+    # Re-optimized loss function weights for slum detection
     LOSS_WEIGHTS = {
-        'dice': 0.4,            # Increased Dice for better segmentation
-        'focal': 0.3,           # Increased Focal for hard examples
-        'bce': 0.2,             # Balanced BCE
-        'tversky': 0.1,         # Reduced Tversky
-        'boundary': 0.0         # Disabled boundary loss to avoid issues
+        'dice': 0.35,           # Balanced Dice loss
+        'focal': 0.25,          # Focal loss for hard examples
+        'bce': 0.15,            # BCE for basic segmentation
+        'tversky': 0.15,        # Tversky for class imbalance
+        'boundary': 0.10        # Re-enabled boundary loss for better edge detection
     }
     
     # Optimized focal loss parameters for slum detection
@@ -94,9 +94,9 @@ class UltraAccurateSlumConfig:
     ENSEMBLE_MODELS = 5         # More models for better ensemble
     UNCERTAINTY_THRESHOLD = 0.05 # Stricter uncertainty filtering
     
-    # Disable multi-scale inference for training stability
-    MULTI_SCALE_INFERENCE = False  # Disabled to avoid channel issues
-    SCALE_FACTORS = [1.0]          # Only single scale
+    # Enable multi-scale inference for better accuracy
+    MULTI_SCALE_INFERENCE = True   # Enabled for better predictions
+    SCALE_FACTORS = [0.8, 1.0, 1.2]  # Multiple scales for inference
     
     # Advanced slum detection features
     ENABLE_BOUNDARY_REFINEMENT = True

@@ -45,13 +45,16 @@ def get_production_augmentations(image_size: int, phase: str = 'train'):
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=0.6),
-            A.ElasticTransform(alpha=1, sigma=50, p=0.3),
+            A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.3, rotate_limit=45, p=0.7),  # Increased variation
+            A.ElasticTransform(alpha=2, sigma=50, p=0.4),  # More elastic deformation
+            A.GridDistortion(p=0.3),  # Added grid distortion for aerial view variations
+            A.OpticalDistortion(p=0.3),  # Added optical distortion
             A.OneOf([
-                A.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1, p=1.0),
-                A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=1.0),
-                A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1.0)
-            ], p=0.7),
+                A.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2, p=1.0),
+                A.RandomBrightnessContrast(brightness_limit=0.4, contrast_limit=0.4, p=1.0),
+                A.HueSaturationValue(hue_shift_limit=30, sat_shift_limit=40, val_shift_limit=30, p=1.0),
+                A.RandomGamma(p=1.0),  # Added gamma adjustment
+            ], p=0.8),
             A.OneOf([
                 A.GaussNoise(p=1.0),
                 A.ISONoise(p=1.0),
