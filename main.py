@@ -350,6 +350,10 @@ def main():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             results_file = os.path.join(config.RESULTS_DIR, f'training_results_{timestamp}.json')
             
+            # Handle case where results might be None
+            if results is None:
+                results = {"error": "Training completed but no results returned"}
+            
             # Convert numpy arrays to lists for JSON serialization
             json_results = {}
             for key, value in results.items():

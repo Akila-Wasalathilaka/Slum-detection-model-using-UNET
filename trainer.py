@@ -237,7 +237,7 @@ class UltraAccurateTrainer:
         
         return avg_val_loss, avg_metrics
     
-    def train(self) -> None:
+    def train(self) -> dict:
         """Main ultra-accurate training loop."""
         print("Starting ultra-accurate slum detection training...")
         
@@ -328,3 +328,18 @@ class UltraAccurateTrainer:
         print(f"🏆 Best Score: {self.best_score:.4f}")
         print(f"🎯 Best IoU: {self.best_iou:.4f}")
         print(f"🎯 Best Dice: {self.best_dice:.4f}")
+        
+        # Return training results
+        return {
+            'best_score': self.best_score,
+            'best_iou': self.best_iou,
+            'best_dice': self.best_dice,
+            'epochs_trained': len(self.train_losses),
+            'train_losses': self.train_losses,
+            'val_losses': self.val_losses,
+            'val_ious': self.val_ious,
+            'val_dices': self.val_dices,
+            'val_precisions': self.val_precisions,
+            'val_recalls': self.val_recalls,
+            'val_f1s': self.val_f1s
+        }
