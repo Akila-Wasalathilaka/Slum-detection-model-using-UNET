@@ -115,15 +115,24 @@ class UltraAccurateTrainer:
         }
     
     def train_epoch(self) -> float:
-        """Train for one epoch with ultra-accurate optimizations."""
+        """Memory-efficient training for one epoch."""
         self.model.train()
         epoch_loss = 0.0
         num_batches = len(self.train_loader)
         
+        # Enable gradient checkpointing if available
+        if hasattr(self.model, 'backbone') and hasattr(self.model.backbone, 'encoder'):
+            self.model.backbone.encoder.gradient_checkpointing_enable()
+        
         pbar = tqdm(self.train_loader, desc="Training")
         for batch_idx, (images, masks) in enumerate(pbar):
-            images = images.to(self.device, non_blocking=True)
+            # Efficient GPU memory transfer
+            images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
             masks = masks.to(self.device, non_blocking=True)
+            
+            # Clear GPU cache periodically
+            if batch_idx % 10 == 0:
+                torch.cuda.empty_cache()
             
             # Warmup learning rate
             if self.current_step < self.warmup_steps:
@@ -193,16 +202,29 @@ class UltraAccurateTrainer:
         
         return epoch_loss / num_batches
     
+    @torch.cuda.amp.autocast()
     def validate_epoch(self) -> Tuple[float, dict]:
-        """Validate for one epoch with comprehensive metrics."""
+        """Memory-efficient validation."""
         self.model.eval()
         val_loss = 0.0
-        all_metrics = []
+        metrics_sum = {
+            'iou': 0., 'dice': 0., 'precision': 0., 
+            'recall': 0., 'f1': 0.
+        }
+        num_batches = len(self.val_loader)
         
-        with torch.no_grad():
+        # Disable gradient checkpointing for validation
+        if hasattr(self.model, 'backbone') and hasattr(self.model.backbone, 'encoder'):
+            self.model.backbone.encoder.gradient_checkpointing_disable()
+        
+        with torch.no_grad(), torch.cuda.amp.autocast():
             for images, masks in tqdm(self.val_loader, desc="Validation"):
-                images = images.to(self.device, non_blocking=True)
+                # Efficient GPU memory transfer
+                images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
                 masks = masks.to(self.device, non_blocking=True)
+                
+                # Clear cache periodically
+                torch.cuda.empty_cache()
                 
                 if self.use_amp:
                     with torch.amp.autocast('cuda'):
@@ -220,20 +242,16 @@ class UltraAccurateTrainer:
                 
                 val_loss += loss.item()
                 
-                # Calculate comprehensive metrics
+                # Calculate and accumulate metrics
                 metrics = self._calculate_metrics(outputs, masks)
-                all_metrics.append(metrics)
+                for k, v in metrics.items():
+                    metrics_sum[k] += v
+                
+                val_loss += loss.item()
         
-        avg_val_loss = val_loss / len(self.val_loader)
-        
-        # Aggregate metrics
-        avg_metrics = {
-            'iou': np.mean([m['iou'] for m in all_metrics]),
-            'dice': np.mean([m['dice'] for m in all_metrics]),
-            'precision': np.mean([m['precision'] for m in all_metrics]),
-            'recall': np.mean([m['recall'] for m in all_metrics]),
-            'f1': np.mean([m['f1'] for m in all_metrics])
-        }
+        # Calculate averages
+        avg_val_loss = val_loss / num_batches
+        avg_metrics = {k: v / num_batches for k, v in metrics_sum.items()}
         
         return avg_val_loss, avg_metrics
     

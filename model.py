@@ -128,8 +128,8 @@ class UltraAccurateUNet(nn.Module):
     def __init__(self, encoder_name: str = 'timm-efficientnet-b2', encoder_weights: str = 'imagenet'):
         super().__init__()
         
-        # Memory-efficient backbone for 4GB GPU
-        self.backbone = smp.UnetPlusPlus(  # UNet++ for better feature reuse
+        # Memory-efficient backbone with gradient checkpointing for 4GB GPU
+        self.backbone = smp.UnetPlusPlus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=config.INPUT_CHANNELS,
@@ -137,7 +137,8 @@ class UltraAccurateUNet(nn.Module):
             activation=None,
             decoder_attention_type='scse',
             decoder_use_batchnorm=True,
-            decoder_channels=(512, 256, 128, 64, 32),  # More channels for detail
+            decoder_channels=(256, 128, 64, 32, 16),  # Reduced channels for memory efficiency
+            encoder_gradient_checkpointing=True,  # Enable gradient checkpointing
         )
         
         # Pyramid pooling module
@@ -186,17 +187,23 @@ class UltraAccurateUNet(nn.Module):
             nn.Sigmoid()
         )
     
+    @torch.cuda.amp.autocast()  # Enable AMP for forward pass
     def forward(self, x):
-        # Multi-scale input processing
-        if hasattr(config, 'MULTI_SCALE_INFERENCE') and config.MULTI_SCALE_INFERENCE and not self.training:
+        # Memory-efficient forward pass
+        torch.cuda.empty_cache()  # Clear cache before forward pass
+        
+        # Multi-scale input processing only during inference
+        if not self.training and hasattr(config, 'MULTI_SCALE_INFERENCE') and config.MULTI_SCALE_INFERENCE:
             return self._multi_scale_forward(x)
         
-        # Use the backbone directly to avoid channel mismatch issues
-        main_output = self.backbone(x)
-        
-        if config.ENABLE_BOUNDARY_REFINEMENT:
-            boundary_refined = self.boundary_refine(main_output)
-            main_output = main_output + boundary_refined
+        # Memory-efficient backbone forward
+        with torch.cuda.amp.autocast():
+            main_output = self.backbone(x)
+            
+            if config.ENABLE_BOUNDARY_REFINEMENT:
+                # Use in-place operations where possible
+                boundary_refined = self.boundary_refine(main_output)
+                main_output.add_(boundary_refined)  # In-place addition
         
         # Skip deep supervision during training for now
         # if self.training:
