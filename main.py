@@ -77,7 +77,7 @@ def evaluate_ultra_model(device: torch.device, model_path: str = None) -> Dict:
     print("\n📊 Evaluating Ultra-Accurate Model...")
     
     if model_path is None:
-        model_path = os.path.join(config.MODEL_SAVE_DIR, 'best_ultra_model.pth')
+        model_path = os.path.join(config.MODEL_SAVE_DIR, 'ultra_accurate_slum_model.pth')
     
     # Load test data
     _, _, test_loader = get_ultra_data_loaders()
@@ -135,7 +135,7 @@ def create_demo_maps(device: torch.device, model_path: str = None):
     print("\n🗺️ Creating Ultra-Accurate Slum Maps...")
     
     if model_path is None:
-        model_path = os.path.join(config.MODEL_SAVE_DIR, 'best_ultra_model.pth')
+        model_path = os.path.join(config.MODEL_SAVE_DIR, 'ultra_accurate_slum_model.pth')
     
     # Initialize inference
     inference = UltraAccurateInference(model_path, device, use_tta=True)
@@ -247,7 +247,7 @@ def run_inference_on_custom_image(device: torch.device, image_path: str, model_p
     print(f"\n🔍 Running Ultra-Accurate Inference on {image_path}...")
     
     if model_path is None:
-        model_path = os.path.join(config.MODEL_SAVE_DIR, 'best_ultra_model.pth')
+        model_path = os.path.join(config.MODEL_SAVE_DIR, 'ultra_accurate_slum_model.pth')
     
     if not os.path.exists(image_path):
         print(f"❌ Image not found: {image_path}")
