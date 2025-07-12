@@ -1,4 +1,0 @@
-TO DELETE:
-README_binary.md
-README_production.md
-old_models/

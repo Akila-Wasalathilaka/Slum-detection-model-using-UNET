@@ -1,1 +1,0 @@
-All legacy markdowns and old model files are now marked for deletion. Only the main scripts and new README.md remain.

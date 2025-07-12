@@ -1,1 +1,0 @@
-Deleted: README_binary.md, README_production.md, old_models/binary_slum_detection.py, old_models/improved_binary_detection.py, old_models/ (directory)
