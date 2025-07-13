@@ -598,7 +598,7 @@ class ModelAnalyzer:
         self.create_prediction_samples(images, targets, predictions, best_threshold)
         
         # Save complete analysis results
-        with open(self.charts_dir / "complete_analysis_results.json", 'w') as f:
+        with open(self.charts_dir / "complete_analysis_results.json", 'w', encoding='utf-8') as f:
             json.dump(analysis_results, f, indent=2, default=str)
         
         # Create summary report
@@ -675,7 +675,7 @@ All charts saved to: {self.charts_dir}
 Analysis completed successfully!
 """
         
-        with open(self.charts_dir / "ANALYSIS_SUMMARY_REPORT.txt", 'w') as f:
+        with open(self.charts_dir / "ANALYSIS_SUMMARY_REPORT.txt", 'w', encoding='utf-8') as f:
             f.write(report)
         
         print(f"📄 Summary report saved: {self.charts_dir}/ANALYSIS_SUMMARY_REPORT.txt")
