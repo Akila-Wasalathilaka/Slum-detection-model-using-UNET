@@ -523,8 +523,8 @@ def main():
                 checkpoint_path=str(best_checkpoint),
                 analysis_type="quick",  # Use quick analysis by default
                 output_dir=str(exp_dir / "charts"),
-                model_config_name=args.model_config,
-                data_config_name=args.data_config
+                model_config_name=args.model,
+                data_config_name=args.data
             )
             
             print(f"📊 Analysis results saved to: {exp_dir / 'charts'}")
