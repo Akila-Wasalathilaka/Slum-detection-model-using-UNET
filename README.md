@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/AUC--ROC-99.67%25-brightgreen)](README.md)
 
-**State-of-the-art UNet-based semantic segmentation for detecting informal settlements in satellite imagery**
+**State-of-the-art UNet-based semantic segmentation model for detecting informal settlements in 120×120 satellite images. Features ResNet34 encoder, advanced loss functions (BCE+Dice+Focal), comprehensive augmentation, and achieves 99.67% AUC-ROC with exceptional class imbalance handling and production-ready deployment.**
 
 [🚀 Quick Start](#-quick-start) • [📊 Results](#-model-performance-results) • [🏗️ Architecture](#️-model-architecture) • [📈 Analysis](#-comprehensive-analysis)
 
