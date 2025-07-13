@@ -412,6 +412,8 @@ def main():
         'train_loss': [], 'val_loss': [],
         'train_iou': [], 'val_iou': [],
         'train_dice': [], 'val_dice': [],
+        'train_precision': [], 'val_precision': [],
+        'train_recall': [], 'val_recall': [],
         'train_f1': [], 'val_f1': [],
         'learning_rates': []
     }
@@ -435,8 +437,10 @@ def main():
             
             # Update history
             for key in train_metrics:
-                history[f'train_{key}'].append(train_metrics[key])
-                history[f'val_{key}'].append(val_metrics[key])
+                if f'train_{key}' in history:
+                    history[f'train_{key}'].append(train_metrics[key])
+                if f'val_{key}' in history and key in val_metrics:
+                    history[f'val_{key}'].append(val_metrics[key])
             
             # Learning rate
             current_lr = optimizer.param_groups[0]['lr']
@@ -489,7 +493,8 @@ def main():
         else:
             # Update history with training metrics only
             for key in train_metrics:
-                history[f'train_{key}'].append(train_metrics[key])
+                if f'train_{key}' in history:
+                    history[f'train_{key}'].append(train_metrics[key])
             
             # Update scheduler (non-plateau schedulers)
             if scheduler and training_config.scheduler.lower() != "plateau":
