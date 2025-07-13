@@ -1,0 +1,104 @@
+{
+  "analysis_type": "comprehensive",
+  "timestamp": "20250713_151421",
+  "checkpoint": "experiments\\development_20250713_141853\\checkpoints\\best_checkpoint.pth",
+  "model_config": "balanced",
+  "data_config": "standard",
+  "results": {
+    "model_info": {
+      "checkpoint": "experiments\\development_20250713_141853\\checkpoints\\best_checkpoint.pth",
+      "architecture": "unet",
+      "encoder": "resnet34",
+      "epoch": 4,
+      "training_metrics": {
+        "loss": 0.3214831111452928,
+        "iou": 0.8884120274607729,
+        "dice": 0.9292647544203735,
+        "precision": 0.9677450882225502,
+        "recall": 0.8992851812665056,
+        "f1": 0.9292642808542019
+      }
+    },
+    "test_dataset": {
+      "num_samples": 648,
+      "positive_ratio": 0.12634173035621643
+    },
+    "roc_analysis": {
+      "auc": 0.9967388711620869,
+      "optimal_threshold": "0.06791852"
+    },
+    "pr_analysis": {
+      "average_precision": 0.9835579557966164,
+      "optimal_f1_threshold": "0.31762528"
+    },
+    "threshold_analysis": {
+      "best_threshold": 0.30000000000000004,
+      "best_f1_score": 0.9566704141685641
+    },
+    "confusion_matrices": {
+      "threshold_0.30": {
+        "true_negatives": 8082082,
+        "false_positives": 70198,
+        "false_negatives": 33554,
+        "true_positives": 1145366,
+        "accuracy": 0.9888811728395062,
+        "precision": 0.9422506754066425,
+        "recall": 0.9715383571404336,
+        "f1_score": 0.9566704141685641,
+        "specificity": 0.9913891573890985,
+        "threshold": 0.30000000000000004
+      },
+      "threshold_0.50": {
+        "true_negatives": 8094732,
+        "false_positives": 57548,
+        "false_negatives": 47213,
+        "true_positives": 1131707,
+        "accuracy": 0.9887730409807957,
+        "precision": 0.9516100415806534,
+        "recall": 0.9599523292505004,
+        "f1_score": 0.9557629820431345,
+        "specificity": 0.9929408705294716,
+        "threshold": 0.5
+      },
+      "threshold_0.70": {
+        "true_negatives": 8107323,
+        "false_positives": 44957,
+        "false_negatives": 68151,
+        "true_positives": 1110769,
+        "accuracy": 0.9878785150891632,
+        "precision": 0.9611006415015324,
+        "recall": 0.942192006243002,
+        "f1_score": 0.9515523980937581,
+        "specificity": 0.9944853464306918,
+        "threshold": 0.7
+      }
+    },
+    "classification_report": {
+      "Non-Slum": {
+        "precision": 0.9958655119574116,
+        "recall": 0.9913891573890985,
+        "f1-score": 0.9936222931074884,
+        "support": 8152280.0
+      },
+      "Slum": {
+        "precision": 0.9422506754066425,
+        "recall": 0.9715383571404336,
+        "f1-score": 0.9566704141685641,
+        "support": 1178920.0
+      },
+      "accuracy": 0.9888811728395062,
+      "macro avg": {
+        "precision": 0.969058093682027,
+        "recall": 0.981463757264766,
+        "f1-score": 0.9751463536380263,
+        "support": 9331200.0
+      },
+      "weighted avg": {
+        "precision": 0.9890917204722401,
+        "recall": 0.9888811728395062,
+        "f1-score": 0.9889537286014575,
+        "support": 9331200.0
+      }
+    }
+  }
+}

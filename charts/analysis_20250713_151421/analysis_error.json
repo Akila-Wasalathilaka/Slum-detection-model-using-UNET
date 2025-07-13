@@ -1,0 +1,6 @@
+{
+  "error": "'charmap' codec can't encode character '\\u2705' in position 601: character maps to <undefined>",
+  "timestamp": "20250713_151421",
+  "checkpoint": "experiments\\development_20250713_141853\\checkpoints\\best_checkpoint.pth",
+  "analysis_type": "comprehensive"
+}
