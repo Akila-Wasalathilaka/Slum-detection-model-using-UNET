@@ -207,6 +207,23 @@ def get_model_info():
         print()
 
 
+def list_available_models():
+    """Return list of available model configuration names."""
+    return list(MODEL_CONFIGS.keys())
+
+
+# Convenience aliases for backward compatibility
+UNet = SlumUNet
+
+# Export main classes and functions
+__all__ = [
+    'SlumUNet',
+    'UNet',  # Alias for SlumUNet
+    'create_model',
+    'get_model_info',
+    'list_available_models'
+]
+
 if __name__ == "__main__":
     # Test model creation
     model = create_model("unet", "resnet34", pretrained=True)
