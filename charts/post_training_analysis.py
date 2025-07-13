@@ -108,7 +108,7 @@ def run_post_training_analysis(
             raise ValueError(f"Unknown analysis type: {analysis_type}")
         
         # Save summary
-        with open(analysis_dir / "analysis_summary.json", 'w') as f:
+        with open(analysis_dir / "analysis_summary.json", 'w', encoding='utf-8') as f:
             json.dump(summary, f, indent=2, default=str)
         
         # Create a simple report
@@ -126,7 +126,7 @@ def run_post_training_analysis(
             'checkpoint': str(checkpoint_path),
             'analysis_type': analysis_type
         }
-        with open(analysis_dir / "analysis_error.json", 'w') as f:
+        with open(analysis_dir / "analysis_error.json", 'w', encoding='utf-8') as f:
             json.dump(error_info, f, indent=2)
         raise
 
@@ -217,7 +217,7 @@ All charts and detailed results are available in:
 Analysis completed successfully!
 """
     
-    with open(output_dir / "ANALYSIS_REPORT.txt", 'w') as f:
+    with open(output_dir / "ANALYSIS_REPORT.txt", 'w', encoding='utf-8') as f:
         f.write(report)
 
 
