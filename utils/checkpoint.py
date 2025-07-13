@@ -380,7 +380,23 @@ def load_checkpoint(
     Returns:
         Checkpoint data dictionary
     """
-    checkpoint = torch.load(filepath, map_location=device)
+    # Handle device mapping properly
+    if device == 'cpu':
+        map_location = 'cpu'
+    elif device.startswith('cuda'):
+        map_location = device
+    else:
+        map_location = None
+    
+    try:
+        checkpoint = torch.load(filepath, map_location=map_location)
+    except RuntimeError as e:
+        if "tagged with auto" in str(e):
+            # Fallback to CPU loading
+            print("⚠️  Loading checkpoint on CPU due to device mismatch")
+            checkpoint = torch.load(filepath, map_location='cpu')
+        else:
+            raise e
     
     model.load_state_dict(checkpoint['model_state_dict'])
     
