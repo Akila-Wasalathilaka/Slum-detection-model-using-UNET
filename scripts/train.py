@@ -513,8 +513,8 @@ def main():
     print(f"🏆 Best {training_config.monitor_metric}: {best_metric:.4f}")
     
     # Run post-training analysis
-    best_checkpoint = checkpoint_manager.best_checkpoint_path
-    if best_checkpoint and best_checkpoint.exists():
+    best_checkpoint = checkpoint_manager.best_checkpoint
+    if best_checkpoint and Path(best_checkpoint).exists():
         print(f"\n🎯 Running post-training analysis...")
         try:
             from charts.post_training_analysis import run_post_training_analysis
