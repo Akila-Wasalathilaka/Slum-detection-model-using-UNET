@@ -527,6 +527,12 @@ class ModelAnalyzer:
         print("🚀 STARTING COMPREHENSIVE MODEL ANALYSIS")
         print("=" * 50)
         
+        # Resolve device if 'auto'
+        if device == 'auto':
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        print(f"🔧 Using device: {device}")
+        
         # Load model and data
         model, test_dataset, checkpoint_info = self.load_model_and_data(
             checkpoint_path, model_config, data_config, device
