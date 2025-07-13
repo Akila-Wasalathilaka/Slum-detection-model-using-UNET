@@ -220,8 +220,7 @@ class SlumDataset(Dataset):
         # Ensure mask is correct size
         if mask.shape != self.image_size:
             mask = cv2.resize(mask, (self.image_size[1], self.image_size[0]))
-        
-        # Apply transforms if provided
+          # Apply transforms if provided
         if self.transform:
             transformed = self.transform(image=image, mask=mask)
             image = transformed['image']
@@ -231,6 +230,9 @@ class SlumDataset(Dataset):
             image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
             mask = torch.from_numpy(mask).float()
         
+        # Ensure mask is float and in correct range [0, 1]
+        mask = mask.float()
+
         return image, mask
     
     def _print_dataset_stats(self):

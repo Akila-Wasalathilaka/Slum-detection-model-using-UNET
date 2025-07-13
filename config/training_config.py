@@ -175,6 +175,7 @@ PRESET_TRAINING_CONFIGS = {
         learning_rate=1e-4,
         early_stopping=True,
         patience=10,
+        use_amp=False,  # Disable AMP for debugging
         experiment_name="development"
     ),
     

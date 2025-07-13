@@ -1,0 +1,57 @@
+{
+  "epochs": 50,
+  "batch_size": 16,
+  "learning_rate": 0.0001,
+  "weight_decay": 1e-05,
+  "optimizer": "adam",
+  "momentum": 0.9,
+  "betas": [
+    0.9,
+    0.999
+  ],
+  "scheduler": "cosine",
+  "scheduler_params": {
+    "T_max": 100,
+    "eta_min": 1e-06,
+    "patience": 10,
+    "factor": 0.5,
+    "gamma": 0.95
+  },
+  "loss_type": "combined",
+  "loss_params": {
+    "bce_weight": 0.5,
+    "dice_weight": 0.4,
+    "focal_weight": 0.1,
+    "focal_alpha": 1.0,
+    "focal_gamma": 2.0
+  },
+  "class_weights": {
+    "pos_weight": 2.0
+  },
+  "use_weighted_sampling": false,
+  "dropout_rate": 0.1,
+  "use_mixup": false,
+  "mixup_alpha": 0.2,
+  "use_cutmix": false,
+  "cutmix_alpha": 1.0,
+  "early_stopping": true,
+  "patience": 10,
+  "min_delta": 0.0001,
+  "monitor_metric": "val_dice",
+  "mode": "max",
+  "val_split": 0.1,
+  "val_frequency": 1,
+  "save_best_only": true,
+  "save_frequency": 10,
+  "max_checkpoints": 5,
+  "use_amp": false,
+  "grad_clip_norm": 1.0,
+  "log_frequency": 10,
+  "plot_frequency": 5,
+  "experiment_name": "development",
+  "seed": 42,
+  "num_workers": 4,
+  "pin_memory": true,
+  "device": "auto",
+  "multi_gpu": false
+}

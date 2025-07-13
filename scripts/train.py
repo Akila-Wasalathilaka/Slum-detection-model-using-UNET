@@ -167,6 +167,9 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, epoch
         if len(masks.shape) == 3:
             masks = masks.unsqueeze(1)
         
+        # Ensure masks are float type for loss computation
+        masks = masks.float()
+        
         optimizer.zero_grad()
         
         # Forward pass with mixed precision
@@ -221,6 +224,9 @@ def validate_epoch(model, val_loader, criterion, device):
             # Add channel dimension to masks if needed
             if len(masks.shape) == 3:
                 masks = masks.unsqueeze(1)
+            
+            # Ensure masks are float type for loss computation
+            masks = masks.float()
             
             outputs = model(images)
             loss = criterion(outputs, masks)

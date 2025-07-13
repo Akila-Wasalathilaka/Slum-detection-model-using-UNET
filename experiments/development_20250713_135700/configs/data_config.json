@@ -1,0 +1,85 @@
+{
+  "data_root": "data",
+  "train_images_dir": "train/images",
+  "train_masks_dir": "train/masks",
+  "val_images_dir": "val/images",
+  "val_masks_dir": "val/masks",
+  "test_images_dir": "test/images",
+  "test_masks_dir": "test/masks",
+  "image_size": [
+    120,
+    120
+  ],
+  "input_channels": 3,
+  "output_channels": 1,
+  "slum_rgb": [
+    250,
+    235,
+    185
+  ],
+  "background_value": 0,
+  "slum_value": 1,
+  "batch_size": 16,
+  "num_workers": 4,
+  "pin_memory": true,
+  "shuffle_train": true,
+  "drop_last": true,
+  "train_split": 0.8,
+  "val_split": 0.1,
+  "test_split": 0.1,
+  "normalize": true,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "min_slum_pixels": 0,
+  "max_slum_percentage": 1.0,
+  "min_slum_percentage": 0.0,
+  "use_tile_masks_only": true,
+  "use_augmentation": true,
+  "augmentation_probability": 0.8,
+  "horizontal_flip": true,
+  "vertical_flip": true,
+  "rotation_limit": 45,
+  "shift_limit": 0.1,
+  "scale_limit": 0.1,
+  "brightness_limit": 0.2,
+  "contrast_limit": 0.2,
+  "saturation_limit": 0.2,
+  "hue_shift_limit": 20,
+  "gaussian_noise": true,
+  "gaussian_noise_limit": [
+    0.0,
+    0.05
+  ],
+  "gaussian_blur": true,
+  "blur_limit": [
+    3,
+    5
+  ],
+  "elastic_transform": true,
+  "elastic_alpha": 120,
+  "elastic_sigma": 6,
+  "grid_distortion": true,
+  "grid_num_steps": 5,
+  "grid_distort_limit": 0.3,
+  "cutout": true,
+  "cutout_holes": 8,
+  "cutout_size": [
+    8,
+    8
+  ],
+  "use_tta": false,
+  "tta_transforms": [
+    "original",
+    "hflip",
+    "vflip",
+    "rotate90"
+  ]
+}

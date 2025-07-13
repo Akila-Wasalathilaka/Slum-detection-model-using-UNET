@@ -24,6 +24,7 @@ class DiceLoss(nn.Module):
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         pred = torch.sigmoid(pred)
+        target = target.float()  # Ensure target is float
         
         # Flatten tensors
         pred_flat = pred.view(-1)
@@ -50,6 +51,9 @@ class FocalLoss(nn.Module):
         self.reduction = reduction
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # Ensure target is float
+        target = target.float()
+        
         # Apply sigmoid to get probabilities
         pred_prob = torch.sigmoid(pred)
         
@@ -152,6 +156,9 @@ class CombinedLoss(nn.Module):
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         loss = 0.0
+        
+        # Ensure target is float and in correct range
+        target = target.float()
         
         if self.bce_weight > 0:
             loss += self.bce_weight * self.bce_loss(pred, target)
