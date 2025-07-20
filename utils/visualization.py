@@ -381,6 +381,84 @@ def create_model_comparison_plot(results: Dict[str, Dict[str, float]],
         plt.show()
 
 
+def create_overlay(image: np.ndarray, mask: np.ndarray, alpha: float = 0.5) -> np.ndarray:
+    """
+    Create an overlay of prediction mask on original image.
+    
+    Args:
+        image: Original image array (H, W, 3)
+        mask: Prediction mask array (H, W) with values 0-1
+        alpha: Transparency for overlay
+        
+    Returns:
+        Overlay image as numpy array
+    """
+    # Ensure image is in correct format
+    if image.dtype != np.uint8:
+        if image.max() <= 1.0:
+            image = (image * 255).astype(np.uint8)
+        else:
+            image = image.astype(np.uint8)
+    
+    # Ensure mask is in correct format
+    if mask.dtype != np.uint8:
+        mask = (mask * 255).astype(np.uint8)
+    
+    # Resize mask to match image if needed
+    if mask.shape != image.shape[:2]:
+        import cv2
+        mask = cv2.resize(mask, (image.shape[1], image.shape[0]))
+    
+    # Create colored overlay (red for slums)
+    overlay = np.zeros_like(image)
+    overlay[:, :, 0] = mask  # Red channel
+    
+    # Blend with original image
+    result = cv2.addWeighted(image, 1-alpha, overlay, alpha, 0)
+    
+    return result
+
+
+def save_prediction_grid(images: List[np.ndarray], predictions: List[np.ndarray], 
+                        ground_truth: List[np.ndarray], save_path: str, 
+                        titles: Optional[List[str]] = None):
+    """
+    Save a grid of predictions for visualization.
+    
+    Args:
+        images: List of original images
+        predictions: List of prediction masks
+        ground_truth: List of ground truth masks
+        save_path: Path to save the grid
+        titles: Optional titles for each sample
+    """
+    n_samples = len(images)
+    fig, axes = plt.subplots(n_samples, 3, figsize=(12, 4 * n_samples))
+    
+    if n_samples == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i in range(n_samples):
+        # Original image
+        axes[i, 0].imshow(images[i])
+        axes[i, 0].set_title(f"Original {i+1}" if titles is None else f"{titles[i]} - Original")
+        axes[i, 0].axis('off')
+        
+        # Ground truth
+        axes[i, 1].imshow(ground_truth[i], cmap='gray', vmin=0, vmax=1)
+        axes[i, 1].set_title("Ground Truth")
+        axes[i, 1].axis('off')
+        
+        # Prediction
+        axes[i, 2].imshow(predictions[i], cmap='gray', vmin=0, vmax=1)
+        axes[i, 2].set_title("Prediction")
+        axes[i, 2].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == "__main__":
     # Test visualization functions
     print("Testing visualization utilities...")

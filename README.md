@@ -199,9 +199,16 @@ slum-detection-model/
 │   ├── post_training_analysis.py # Automated analysis pipeline
 │   └── README.md             # Analysis tools documentation
 │
+├── 🔮 advanced_slum_detection/ # Advanced prediction tools
+│   ├── advanced_detector.py  # Batch processing with confidence analysis
+│   ├── confidence_analyzer.py # Advanced confidence metrics
+│   ├── __init__.py           # Package initialization
+│   └── README.md             # Advanced detection documentation
+│
 ├── 🧪 experiments/             # Training experiments
 │   ├── logs/                 # Training logs
 │   ├── checkpoints/          # Model weights
+│   ├── advanced_predictions/ # Advanced prediction outputs
 │   └── results/              # Test results and plots
 │
 ├── 🖼️ images/                  # Documentation images
@@ -327,6 +334,76 @@ python charts/post_training_analysis.py --auto-find --analysis-type comprehensiv
 - **Early Stopping**: Prevent overfitting
 - **Gradient Clipping**: Training stability
 
+### 🔮 **Advanced Prediction Tools**
+- **Batch Processing**: Efficient processing of multiple images
+- **Confidence Analysis**: Detailed uncertainty metrics and distributions
+- **Morphological Post-processing**: Clean predictions with morphological operations
+- **Comprehensive Visualizations**: Prediction overlays, heatmaps, and statistical plots
+- **JSON Export**: Structured results for programmatic analysis
+- **Command Line Interface**: Easy deployment and integration
+
+---
+
+## 🚀 Advanced Slum Detection Usage
+
+### 📦 **Single Image Prediction**
+```python
+from advanced_slum_detection import AdvancedSlumDetector
+
+# Initialize detector with trained model
+detector = AdvancedSlumDetector(
+    checkpoint_path="experiments/best_model.pth",
+    model_config="balanced"
+)
+
+# Predict on single image
+result = detector.predict_single("satellite_image.jpg", threshold=0.3)
+print(f"Slum area: {result['area_stats']['slum_percentage']:.1f}%")
+print(f"Confidence: {result['confidence_stats']['mean_confidence']:.3f}")
+```
+
+### 🔄 **Batch Processing**
+```python
+# Process entire directory
+batch_results = detector.predict_batch(
+    image_dir="data/test/images",
+    output_dir="advanced_predictions",
+    threshold=0.3,
+    save_visualizations=True
+)
+
+print(f"Processed: {batch_results['summary_stats']['total_images']} images")
+print(f"Slum detected: {batch_results['summary_stats']['slum_detected']} images")
+```
+
+### 📊 **Confidence Analysis**
+```python
+from advanced_slum_detection import ConfidenceAnalyzer
+
+# Analyze prediction confidence
+analyzer = ConfidenceAnalyzer()
+analyzer.load_results_from_json("batch_results.json")
+analysis = analyzer.analyze_confidence_distribution()
+analyzer.generate_confidence_report("confidence_analysis/")
+```
+
+### 💻 **Command Line Interface**
+```bash
+# Single image prediction
+python advanced_slum_detection/advanced_detector.py \
+    --checkpoint experiments/best_model.pth \
+    --input satellite_image.jpg \
+    --output results/ \
+    --threshold 0.3
+
+# Batch processing
+python advanced_slum_detection/advanced_detector.py \
+    --checkpoint experiments/best_model.pth \
+    --input data/test/images/ \
+    --output batch_results/ \
+    --threshold 0.3 \
+    --batch
+```
 ---
 
 ## 🎉 Real-World Applications

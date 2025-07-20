@@ -1,0 +1,370 @@
+{
+  "detection_summary": {
+    "total_tiles": 50,
+    "slum_tiles": 0,
+    "non_slum_tiles": 50,
+    "slum_percentage": 0.0,
+    "avg_probability": 0.011444241423159838,
+    "max_probability": 0.03845616802573204,
+    "min_probability": 0.009401989169418812,
+    "confidence_distribution": {
+      "high": 50,
+      "medium": 0,
+      "low": 0
+    },
+    "threshold_used": 0.5
+  },
+  "high_probability_tiles": [],
+  "low_probability_tiles": [
+    {
+      "tile_file": "tiles\\colombo_tile_0000.png",
+      "tile_name": "colombo_tile_0000.png",
+      "probability": 0.009496919810771942,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0001.png",
+      "tile_name": "colombo_tile_0001.png",
+      "probability": 0.00946805253624916,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0002.png",
+      "tile_name": "colombo_tile_0002.png",
+      "probability": 0.00946070160716772,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0003.png",
+      "tile_name": "colombo_tile_0003.png",
+      "probability": 0.010016928426921368,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0004.png",
+      "tile_name": "colombo_tile_0004.png",
+      "probability": 0.00978115200996399,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0005.png",
+      "tile_name": "colombo_tile_0005.png",
+      "probability": 0.009526125155389309,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0006.png",
+      "tile_name": "colombo_tile_0006.png",
+      "probability": 0.009523127228021622,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0007.png",
+      "tile_name": "colombo_tile_0007.png",
+      "probability": 0.009721647016704082,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0008.png",
+      "tile_name": "colombo_tile_0008.png",
+      "probability": 0.00945989415049553,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0009.png",
+      "tile_name": "colombo_tile_0009.png",
+      "probability": 0.009588428772985935,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0010.png",
+      "tile_name": "colombo_tile_0010.png",
+      "probability": 0.009433001279830933,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0011.png",
+      "tile_name": "colombo_tile_0011.png",
+      "probability": 0.009519469924271107,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0012.png",
+      "tile_name": "colombo_tile_0012.png",
+      "probability": 0.009632515721023083,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0013.png",
+      "tile_name": "colombo_tile_0013.png",
+      "probability": 0.009631756693124771,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0014.png",
+      "tile_name": "colombo_tile_0014.png",
+      "probability": 0.02626907266676426,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0015.png",
+      "tile_name": "colombo_tile_0015.png",
+      "probability": 0.009783669374883175,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0016.png",
+      "tile_name": "colombo_tile_0016.png",
+      "probability": 0.009647173807024956,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0017.png",
+      "tile_name": "colombo_tile_0017.png",
+      "probability": 0.009672154672443867,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0018.png",
+      "tile_name": "colombo_tile_0018.png",
+      "probability": 0.009503860026597977,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0019.png",
+      "tile_name": "colombo_tile_0019.png",
+      "probability": 0.01555721741169691,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0020.png",
+      "tile_name": "colombo_tile_0020.png",
+      "probability": 0.00947436224669218,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0021.png",
+      "tile_name": "colombo_tile_0021.png",
+      "probability": 0.009401989169418812,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0022.png",
+      "tile_name": "colombo_tile_0022.png",
+      "probability": 0.009871046990156174,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0023.png",
+      "tile_name": "colombo_tile_0023.png",
+      "probability": 0.030698882415890694,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0024.png",
+      "tile_name": "colombo_tile_0024.png",
+      "probability": 0.019788533449172974,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0025.png",
+      "tile_name": "colombo_tile_0025.png",
+      "probability": 0.010409300215542316,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0026.png",
+      "tile_name": "colombo_tile_0026.png",
+      "probability": 0.009551448747515678,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0027.png",
+      "tile_name": "colombo_tile_0027.png",
+      "probability": 0.009539994411170483,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0028.png",
+      "tile_name": "colombo_tile_0028.png",
+      "probability": 0.01075845118612051,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0029.png",
+      "tile_name": "colombo_tile_0029.png",
+      "probability": 0.015043812803924084,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0030.png",
+      "tile_name": "colombo_tile_0030.png",
+      "probability": 0.009684083051979542,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0031.png",
+      "tile_name": "colombo_tile_0031.png",
+      "probability": 0.011061008088290691,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0032.png",
+      "tile_name": "colombo_tile_0032.png",
+      "probability": 0.009518184699118137,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0033.png",
+      "tile_name": "colombo_tile_0033.png",
+      "probability": 0.009480906650424004,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0034.png",
+      "tile_name": "colombo_tile_0034.png",
+      "probability": 0.03845616802573204,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0035.png",
+      "tile_name": "colombo_tile_0035.png",
+      "probability": 0.009572090581059456,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0036.png",
+      "tile_name": "colombo_tile_0036.png",
+      "probability": 0.009655431844294071,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0037.png",
+      "tile_name": "colombo_tile_0037.png",
+      "probability": 0.00961181428283453,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0038.png",
+      "tile_name": "colombo_tile_0038.png",
+      "probability": 0.009538485668599606,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0039.png",
+      "tile_name": "colombo_tile_0039.png",
+      "probability": 0.009540816769003868,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0040.png",
+      "tile_name": "colombo_tile_0040.png",
+      "probability": 0.009515078738331795,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0041.png",
+      "tile_name": "colombo_tile_0041.png",
+      "probability": 0.009542090818285942,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0042.png",
+      "tile_name": "colombo_tile_0042.png",
+      "probability": 0.009579128585755825,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0043.png",
+      "tile_name": "colombo_tile_0043.png",
+      "probability": 0.009503519162535667,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0044.png",
+      "tile_name": "colombo_tile_0044.png",
+      "probability": 0.009479494765400887,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0045.png",
+      "tile_name": "colombo_tile_0045.png",
+      "probability": 0.010979115962982178,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0046.png",
+      "tile_name": "colombo_tile_0046.png",
+      "probability": 0.009527084417641163,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0047.png",
+      "tile_name": "colombo_tile_0047.png",
+      "probability": 0.009700484573841095,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0048.png",
+      "tile_name": "colombo_tile_0048.png",
+      "probability": 0.009587572887539864,
+      "prediction": "non-slum",
+      "confidence": "high"
+    },
+    {
+      "tile_file": "tiles\\colombo_tile_0049.png",
+      "tile_name": "colombo_tile_0049.png",
+      "probability": 0.009448821656405926,
+      "prediction": "non-slum",
+      "confidence": "high"
+    }
+  ]
+}

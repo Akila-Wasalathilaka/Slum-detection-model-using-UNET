@@ -169,7 +169,7 @@ class CheckpointManager:
         print(f"📂 Loading checkpoint: {checkpoint_path}")
         
         # Load checkpoint
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
         
         # Load model state
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -222,7 +222,7 @@ class CheckpointManager:
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
         
-        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
         
         return {
             'epoch': checkpoint.get('epoch'),
@@ -381,20 +381,21 @@ def load_checkpoint(
         Checkpoint data dictionary
     """
     # Handle device mapping properly
-    if device == 'cpu':
+    device_str = str(device) if hasattr(device, 'type') else device
+    if device_str == 'cpu' or 'cpu' in device_str:
         map_location = 'cpu'
-    elif device.startswith('cuda'):
-        map_location = device
+    elif 'cuda' in device_str:
+        map_location = device_str
     else:
         map_location = None
     
     try:
-        checkpoint = torch.load(filepath, map_location=map_location)
+        checkpoint = torch.load(filepath, map_location=map_location, weights_only=False)
     except RuntimeError as e:
         if "tagged with auto" in str(e):
             # Fallback to CPU loading
             print("⚠️  Loading checkpoint on CPU due to device mismatch")
-            checkpoint = torch.load(filepath, map_location='cpu')
+            checkpoint = torch.load(filepath, map_location='cpu', weights_only=False)
         else:
             raise e
     

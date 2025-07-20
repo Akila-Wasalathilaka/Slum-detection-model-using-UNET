@@ -1,0 +1,30 @@
+COLOMBO SLUM DETECTION ANALYSIS REPORT
+==================================================
+Analysis Date: 2025-07-14 09:28:46
+Model: unet with resnet34
+
+OVERALL STATISTICS:
+  Total tiles analyzed: 50
+  Slum areas detected: 0 tiles (0.0%)
+  Non-slum areas: 50 tiles (100.0%)
+  Average slum probability: 0.018
+  Maximum slum probability: 0.085
+  Average slum coverage: 0.0%
+
+CONFIDENCE BREAKDOWN:
+  High confidence: 50 tiles
+  Medium confidence: 0 tiles
+  Low confidence: 0 tiles
+
+METHODOLOGY:
+  - Used exact same preprocessing as successful training analysis
+  - Applied ImageNet normalization and test-time transforms
+  - Generated spatial probability maps for each tile
+  - Created red overlays with 40% transparency
+  - Classification threshold: 0.5
+
+OUTPUT FILES:
+  - Individual tile overlays: 52 files
+  - Grid overview: all_tiles_grid_overlay.png
+  - Statistics summary: detection_summary.png
+  - Complete results: colombo_slum_detection_complete.json

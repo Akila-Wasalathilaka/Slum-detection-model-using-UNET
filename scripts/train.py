@@ -435,12 +435,16 @@ def main():
         if epoch % training_config.val_frequency == 0:
             val_metrics = validate_epoch(model, data_loaders['val'], criterion, device)
             
-            # Update history
+            # Update history - safely handle missing keys
             for key in train_metrics:
-                if f'train_{key}' in history:
-                    history[f'train_{key}'].append(train_metrics[key])
-                if f'val_{key}' in history and key in val_metrics:
-                    history[f'val_{key}'].append(val_metrics[key])
+                train_key = f'train_{key}'
+                if train_key in history:
+                    history[train_key].append(train_metrics[key])
+                    
+            for key in val_metrics:
+                val_key = f'val_{key}'
+                if val_key in history:
+                    history[val_key].append(val_metrics[key])
             
             # Learning rate
             current_lr = optimizer.param_groups[0]['lr']
@@ -533,6 +537,43 @@ def main():
             print(f"⚠️  Post-training analysis failed: {str(e)}")
             print("   You can run it manually later using:")
             print(f"   python charts/post_training_analysis.py --checkpoint {best_checkpoint}")
+        
+        # Generate advanced predictions
+        print(f"\n🔮 Generating advanced predictions...")
+        try:
+            from advanced_slum_detection import AdvancedSlumDetector
+            
+            # Create advanced predictions directory
+            advanced_dir = exp_dir / "advanced_predictions"
+            advanced_dir.mkdir(exist_ok=True)
+            
+            # Initialize detector
+            detector = AdvancedSlumDetector(
+                checkpoint_path=str(best_checkpoint),
+                model_config=args.model
+            )
+            
+            # Generate predictions on test set
+            test_images_dir = data_config.data_root / "test" / "images"
+            if test_images_dir.exists():
+                batch_results = detector.predict_batch(
+                    image_dir=str(test_images_dir),
+                    output_dir=str(advanced_dir),
+                    threshold=0.3,
+                    save_visualizations=True
+                )
+                
+                print(f"🏘️  Advanced predictions completed:")
+                print(f"   - Processed: {batch_results['summary_stats']['total_images']} images")
+                print(f"   - Slum detected: {batch_results['summary_stats']['slum_detected']} images")
+                print(f"   - Results saved to: {advanced_dir}")
+            else:
+                print(f"⚠️  Test images directory not found: {test_images_dir}")
+                
+        except Exception as e:
+            print(f"⚠️  Advanced prediction generation failed: {str(e)}")
+            print("   You can run it manually later using:")
+            print(f"   python advanced_slum_detection/advanced_detector.py --checkpoint {best_checkpoint} --input data/test/images --output {exp_dir}/advanced_predictions --batch")
     else:
         print("⚠️  No best checkpoint found for analysis")
 
