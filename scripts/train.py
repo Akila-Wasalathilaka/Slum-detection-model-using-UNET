@@ -541,6 +541,7 @@ def main():
         # Generate advanced predictions
         print(f"\n🔮 Generating advanced predictions...")
         try:
+            sys.path.append(str(project_root))
             from advanced_slum_detection import AdvancedSlumDetector
             
             # Create advanced predictions directory
