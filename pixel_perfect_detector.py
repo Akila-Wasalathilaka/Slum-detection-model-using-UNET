@@ -184,10 +184,12 @@ class PixelPerfectDetector:
         # High-resolution heatmap
         heatmap = cv2.applyColorMap((prob_map * 255).astype(np.uint8), cv2.COLORMAP_JET)
         
-        # Precise overlay
+        # Precise overlay - only mark slum pixels in red
         overlay = original.copy()
-        overlay[binary_mask] = [255, 50, 50]  # Bright red for slums
-        blended = cv2.addWeighted(original, 0.6, overlay, 0.4, 0)
+        # Only change pixels where slums are detected (binary_mask is True)
+        slum_pixels = binary_mask > 0
+        overlay[slum_pixels] = [255, 50, 50]  # Bright red only for slum pixels
+        blended = cv2.addWeighted(original, 0.7, overlay, 0.3, 0)
         
         # Edge detection overlay
         edges = cv2.Canny((prob_map * 255).astype(np.uint8), 50, 150)
