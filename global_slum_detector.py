@@ -54,7 +54,7 @@ class GlobalSlumDetector:
             image = Image.fromarray(image).convert('RGB')
         
         # Resize to model input size
-        image = image.resize((120, 120), Image.LANCZOS)
+        image = image.resize((128, 128), Image.LANCZOS)
         image_array = np.array(image)
         
         # Apply transforms
@@ -93,9 +93,9 @@ class GlobalSlumDetector:
         """Create comprehensive visualization."""
         # Resize original to match prediction
         if isinstance(original_image, np.ndarray):
-            original = cv2.resize(original_image, (120, 120))
+            original = cv2.resize(original_image, (128, 128))
         else:
-            original = np.array(original_image.resize((120, 120)))
+            original = np.array(original_image.resize((128, 128)))
         
         # Create overlay
         overlay = original.copy()
@@ -138,7 +138,7 @@ def gradio_interface(image, threshold):
         
     except Exception as e:
         error_msg = f"❌ Detection failed: {str(e)}"
-        blank = np.zeros((120, 120, 3), dtype=np.uint8)
+        blank = np.zeros((128, 128, 3), dtype=np.uint8)
         return blank, blank, blank, error_msg
 
 # Create Gradio interface

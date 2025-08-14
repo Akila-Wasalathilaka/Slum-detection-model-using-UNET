@@ -28,7 +28,7 @@ class DataConfig:
     test_masks_dir: str = "test/masks"
     
     # Image Properties
-    image_size: Tuple[int, int] = (120, 120)  # Height, Width
+    image_size: Tuple[int, int] = (128, 128)  # Height, Width
     input_channels: int = 3  # RGB
     output_channels: int = 1  # Binary mask
     

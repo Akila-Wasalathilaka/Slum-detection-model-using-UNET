@@ -34,7 +34,7 @@ class ModelConfig:
     aux_params: Optional[Dict[str, Any]] = None
     
     # Input/Output
-    input_size: tuple = (120, 120)  # Height, Width
+    input_size: tuple = (128, 128)  # Height, Width
     output_stride: int = 1          # Output downsampling factor
     
     def to_dict(self) -> Dict[str, Any]:
