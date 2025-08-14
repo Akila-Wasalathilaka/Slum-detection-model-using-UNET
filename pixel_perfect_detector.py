@@ -95,8 +95,8 @@ class PixelPerfectDetector:
         std = np.array([0.229, 0.224, 0.225])
         image_array = (image_array - mean) / std
         
-        # Convert to tensor
-        tensor = torch.from_numpy(image_array.transpose(2, 0, 1)).unsqueeze(0)
+        # Convert to tensor with correct dtype
+        tensor = torch.from_numpy(image_array.transpose(2, 0, 1)).float().unsqueeze(0)
         return tensor.to(self.device), original_size
     
     def detect_pixel_perfect(self, image, threshold=0.5):
