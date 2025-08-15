@@ -48,10 +48,6 @@ def setup_colab():
 # Run setup
 setup_colab()
 
-# Set random seeds for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
-
 # Import required modules
 import torch
 import torch.nn as nn
@@ -65,6 +61,10 @@ from models.global_losses import ComboLossV2
 from utils.global_transforms import get_global_train_transforms, get_global_val_transforms
 from utils.dataset import SlumDataset
 from torch.utils.data import DataLoader
+
+# Set random seeds for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
 
 
 def _build_smp_unet(encoder_name: str = "resnet34", in_channels: int = 6, classes: int = 1, pretrained: bool = True) -> nn.Module:
