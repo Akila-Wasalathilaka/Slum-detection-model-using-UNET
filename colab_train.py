@@ -38,6 +38,8 @@ def setup_colab():
     # Ensure we're in the repo root
     os.chdir(repo_dir)
 
+    # Note: avoid resetting the repo while this script is running to prevent overwriting it.
+
     # Install requirements (safe to re-run)
     subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'], check=True)
 
@@ -53,11 +55,59 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
-from models.enhanced_unet import create_enhanced_model
+import segmentation_models_pytorch as smp
 from models.global_losses import ComboLossV2
 from utils.global_transforms import get_global_train_transforms, get_global_val_transforms
 from utils.dataset import SlumDataset
 from torch.utils.data import DataLoader
+
+
+def _build_smp_unet(encoder_name: str = "resnet34", in_channels: int = 6, classes: int = 1, pretrained: bool = True) -> nn.Module:
+    """Create an SMP Unet and safely adapt first conv to arbitrary input channels.
+
+    - Loads ImageNet weights with 3 input channels when pretrained=True.
+    - Replaces the first conv with a new one matching `in_channels`, copying RGB weights and
+      initializing extra channels from the RGB mean to preserve pretrained features.
+    """
+    base_in = 3 if (pretrained and in_channels != 3) else in_channels
+    model = smp.Unet(
+        encoder_name=encoder_name,
+        encoder_weights=("imagenet" if pretrained else None),
+        in_channels=base_in,
+        classes=classes,
+    )
+
+    # If needed, adapt first conv
+    if base_in != in_channels:
+        first_conv = model.encoder.conv1
+        new_conv = nn.Conv2d(
+            in_channels,
+            first_conv.out_channels,
+            kernel_size=first_conv.kernel_size,
+            stride=first_conv.stride,
+            padding=first_conv.padding,
+            bias=first_conv.bias is not None,
+        )
+        with torch.no_grad():
+            old_w = first_conv.weight
+            old_in = old_w.shape[1]
+
+            # Copy existing channels up to min
+            copy_c = min(old_in, in_channels)
+            new_conv.weight[:, :copy_c].copy_(old_w[:, :copy_c])
+
+            # Initialize any extra channels from RGB (or available) mean
+            if in_channels > old_in:
+                mean_src = old_w[:, :min(3, old_in)].mean(dim=1, keepdim=True)
+                repeat = in_channels - old_in
+                new_conv.weight[:, old_in:].copy_(mean_src.expand(-1, repeat, -1, -1))
+
+            if first_conv.bias is not None and new_conv.bias is not None:
+                new_conv.bias.copy_(first_conv.bias)
+
+        model.encoder.conv1 = new_conv
+
+    return model
 
 class MinimalTrainer:
     """Minimal trainer for Colab"""
@@ -69,16 +119,16 @@ class MinimalTrainer:
 
         print(f"🔥 Device: {self.device}")
 
-        # Create model
-        self.model = create_enhanced_model(encoder="resnet34", in_channels=6)
-        self.model.to(self.device)
+    # Create model (robust to 6-channel input with pretrained weights)
+    self.model = _build_smp_unet(encoder_name="resnet34", in_channels=6, classes=1, pretrained=True)
+    self.model.to(self.device)
 
-        # Loss and optimizer
-        self.criterion = ComboLossV2()
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
+    # Loss and optimizer
+    self.criterion = ComboLossV2()
+    self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
 
-        # Setup data
-        self._setup_data()
+    # Setup data
+    self._setup_data()
 
     def _setup_data(self):
         """Setup datasets and loaders"""
@@ -87,14 +137,14 @@ class MinimalTrainer:
 
         # Create datasets
         self.train_dataset = SlumDataset(
-            images_dir=self.data_root / 'train' / 'images',
-            masks_dir=self.data_root / 'train' / 'masks',
+            images_dir=str(self.data_root / 'train' / 'images'),
+            masks_dir=str(self.data_root / 'train' / 'masks'),
             transform=train_transform
         )
 
         self.val_dataset = SlumDataset(
-            images_dir=self.data_root / 'val' / 'images',
-            masks_dir=self.data_root / 'val' / 'masks',
+            images_dir=str(self.data_root / 'val' / 'images'),
+            masks_dir=str(self.data_root / 'val' / 'masks'),
             transform=val_transform
         )
 
