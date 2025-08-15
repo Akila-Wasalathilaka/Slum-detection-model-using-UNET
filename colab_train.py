@@ -118,17 +118,16 @@ class MinimalTrainer:
         self.lr = lr
 
         print(f"🔥 Device: {self.device}")
+        # Create model (robust to 6-channel input with pretrained weights)
+        self.model = _build_smp_unet(encoder_name="resnet34", in_channels=6, classes=1, pretrained=True)
+        self.model.to(self.device)
 
-    # Create model (robust to 6-channel input with pretrained weights)
-    self.model = _build_smp_unet(encoder_name="resnet34", in_channels=6, classes=1, pretrained=True)
-    self.model.to(self.device)
+        # Loss and optimizer
+        self.criterion = ComboLossV2()
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
 
-    # Loss and optimizer
-    self.criterion = ComboLossV2()
-    self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
-
-    # Setup data
-    self._setup_data()
+        # Setup data
+        self._setup_data()
 
     def _setup_data(self):
         """Setup datasets and loaders"""
