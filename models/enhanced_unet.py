@@ -2,7 +2,7 @@
 Stable UNet wrapper with 6-channel input
 =======================================
 Uses segmentation_models_pytorch.Unet with minimal customizations to ensure
-compatibility and reliability in Colab and local environments.
+compatibility and reliability across environments.
 """
 
 import torch

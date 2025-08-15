@@ -82,7 +82,7 @@ def _build_smp_unet(encoder_name: str = "resnet34", in_channels: int = 6, classe
     return model
 
 class MinimalTrainer:
-    """Minimal trainer for Colab"""
+    """Minimal trainer for Kaggle/local runs"""
     def __init__(self, data_root='data', batch_size=16, lr=1e-4):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.data_root = Path(data_root)

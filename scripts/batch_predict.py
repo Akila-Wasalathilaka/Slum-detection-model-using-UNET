@@ -3,7 +3,6 @@
 Batch Prediction Script
 =======================
 Run the trained model over a folder of images and save overlays, masks, and probabilities.
-Optimized for Colab: minimal deps, robust to large folders.
 """
 
 import os
@@ -25,9 +24,9 @@ def find_images(input_dir):
 
 
 ess = """
-Usage examples (Colab):
-!python scripts/batch_predict.py --checkpoint best_global_model.pth \
-  --input data/test/images --output outputs --use-tta --use-tent --max 50
+Usage example:
+python scripts/batch_predict.py --checkpoint best_global_model.pth \
+    --input data/test/images --output outputs --use-tta --use-tent --max 50
 """
 
 
