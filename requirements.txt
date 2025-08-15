@@ -30,9 +30,9 @@ seaborn>=0.12.0
 tqdm>=4.65.0
 pathlib2>=2.3.0
 
-# Jupyter/Colab Support
-jupyter>=1.0.0
-ipywidgets>=8.0.0
+# Jupyter/Colab Support (omit to avoid conflicts in Google Colab)
+# jupyter>=1.0.0
+# ipywidgets>=8.0.0
 
 # Optional: ONNX Export
 # onnx>=1.14.0
