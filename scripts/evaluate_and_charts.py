@@ -183,7 +183,7 @@ def conf_matrix_plot(out_dir: Path, y_true: np.ndarray, y_pred: np.ndarray):
     plt.figure(figsize=(5, 4))
     plt.imshow(cm, cmap="Blues")
     plt.title("Confusion Matrix")
-    plt.xticks([0, 1], ["Neg", "Pos"]) ; plt.yticks([0, 1], ["Neg", "Pos"]) 
+    plt.xticks([0, 1], ["Neg", "Pos"]) ; plt.yticks([0, 1], ["Neg", "Pos"])
     for (i, j), v in np.ndenumerate(cm):
         plt.text(j, i, str(v), ha='center', va='center')
     plt.tight_layout()

@@ -4,7 +4,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](colab_slum_detector.ipynb)
 
 ## 🔥 What's Fixed
 
@@ -21,22 +20,16 @@
 - **Uncertainty estimation** - Know when model is confident
 - **Test-time adaptation** - Self-improves on new domains
 
-## 🚀 Quick Start (Colab)
+## 🚀 Quick Start (Kaggle or Local)
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](colab_slum_detector.ipynb)
+Run locally or in Kaggle with the same scripts. Artifacts are saved under the repo root.
 
+Single image inference (Python):
 ```python
-# 1. Upload satellite images
-# 2. Run detection
-# 3. Get accurate red overlays!
-
 from global_slum_detector import GlobalSlumDetector
 
 detector = GlobalSlumDetector("best_model.pth")
 result = detector.predict_global("satellite_image.jpg")
-
-# Perfect red overlay - no fake dots!
-plt.imshow(result['overlay'])
 ```
 
 ## 🌍 Global Features
@@ -95,7 +88,7 @@ detector = GlobalSlumDetector("best_model.pth")
 result = detector.predict_global(
     "satellite_image.jpg",
     use_tta=True,           # Test-time augmentation
-    use_tent=True,          # TENT adaptation  
+    use_tent=True,          # TENT adaptation
     adaptive_threshold=True  # Smart thresholding
 )
 
@@ -109,19 +102,16 @@ cv2.imwrite("overlay.jpg", cv2.cvtColor(result['overlay'], cv2.COLOR_RGB2BGR))
 ```
 
 ### Training Global Model
+Run the trainer; it saves best_global_model.pth and charts to the repo root.
 ```bash
-python scripts/train_global.py \
-    --data_root data \
-    --batch_size 16 \
-    --epochs 100 \
-    --lr 1e-4
+python scripts/train_global.py --data_root data --batch_size 16 --epochs 100 --lr 1e-4
 ```
 
 ## 🌍 Global Deployment
 
 ### Works Anywhere:
 - 🇳🇬 **Lagos, Nigeria** - Dense urban slums
-- 🇵🇭 **Manila, Philippines** - Coastal settlements  
+- 🇵🇭 **Manila, Philippines** - Coastal settlements
 - 🇧🇷 **Rio, Brazil** - Hillside favelas
 - 🇮🇳 **Mumbai, India** - Mixed urban areas
 - 🌍 **Any location** - No retraining needed!
@@ -138,14 +128,15 @@ python scripts/train_global.py \
 ```
 slum-detection-model/
 ├── 🌍 global_slum_detector.py     # Main detection system
-├── 📓 colab_slum_detector.ipynb   # Colab notebook
 ├── 🏗️ models/
-│   ├── enhanced_unet.py           # ASPP + Attention UNet
-│   └── global_losses.py           # Advanced loss functions
+│   ├── enhanced_unet.py           # UNet wrapper (6-ch input)
+│   └── global_losses.py           # Losses
 ├── 🛠️ utils/
 │   └── global_transforms.py       # Domain generalization
 ├── 🎯 scripts/
-│   └── train_global.py            # Global training
+│   ├── train_global.py            # Training
+│   ├── batch_predict.py           # Batch inference to outputs/
+│   └── evaluate_and_charts.py     # Per-image panels and charts
 └── 📊 data/                       # Your dataset
 ```
 
@@ -155,12 +146,12 @@ slum-detection-model/
 ```python
 # Maximum accuracy (slower)
 result = detector.predict_global(
-    image_path, 
-    use_tta=True, 
+    image_path,
+    use_tta=True,
     use_tent=True
 )
 
-# Fast inference (faster)  
+# Fast inference (faster)
 result = detector.predict_global(
     image_path,
     use_tta=False,

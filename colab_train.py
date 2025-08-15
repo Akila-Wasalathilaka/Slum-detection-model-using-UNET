@@ -1,58 +1,23 @@
 #!/usr/bin/env python3
 """
-Minimal Colab Training Script for Global Slum Detection
-======================================================
-Idempotent setup: detects current working directory to avoid double clone or nested paths.
+Minimal Training Script for Global Slum Detection (Kaggle-friendly)
+===================================================================
+Runs in-place from the repository root and saves all outputs in the current directory.
+No external cloning or /content references.
 """
 
-# Setup and clone repository
 import os
-import subprocess
 import sys
+import subprocess
+from pathlib import Path
 
-def setup_colab():
-    """Setup Colab environment without cloning twice or nesting paths."""
-    print("🚀 Setting up Colab environment...")
-
-    repo_name = 'Slum-detection-model-using-UNET'
-    cwd = os.getcwd()
-
-    # Heuristic: if we're already inside the repo (has requirements and scripts/), don't clone or chdir
-    already_in_repo = (
-        os.path.isfile(os.path.join(cwd, 'requirements.txt')) and
-        os.path.isdir(os.path.join(cwd, 'scripts')) and
-        os.path.isdir(os.path.join(cwd, 'utils'))
-    )
-
-    if already_in_repo:
-        repo_dir = cwd
-    else:
-        # Prefer /content in Colab if available
-        base_dir = '/content' if os.path.isdir('/content') else cwd
-        repo_dir = os.path.join(base_dir, repo_name)
-
-        if not os.path.exists(repo_dir):
-            # Clone into base_dir
-            subprocess.run(['git', '-C', base_dir, 'clone', 'https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git'], check=True)
-
-    # Ensure we're in the repo root
-    os.chdir(repo_dir)
-
-    # Note: avoid resetting the repo while this script is running to prevent overwriting it.
-
-    # Install requirements (safe to re-run)
-    subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'], check=True)
-
-    print(f"✅ Setup complete in: {os.getcwd()}")
-
-# Run setup
-setup_colab()
+REPO_ROOT = Path(__file__).resolve().parent
+print(f"🏁 Starting training in: {os.getcwd()} | Saving to: {REPO_ROOT}")
 
 # Import required modules
 import torch
 import torch.nn as nn
 import numpy as np
-from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
 import contextlib
@@ -295,12 +260,13 @@ class MinimalTrainer:
             # Save best model based on F1 score
             if val_f1 > best_val_f1:
                 best_val_f1 = val_f1
+                save_path = REPO_ROOT / 'best_global_model.pth'
                 torch.save({
                     'model_state_dict': self.model.state_dict(),
                     'epoch': epoch,
                     'val_f1': val_f1
-                }, 'best_global_model.pth')
-                print(f"✅ Best model saved! Val F1: {val_f1:.4f}")
+                }, str(save_path))
+                print(f"✅ Best model saved! Val F1: {val_f1:.4f} -> {save_path}")
 
         # Save training curves
         try:
@@ -309,7 +275,7 @@ class MinimalTrainer:
             plt.plot(epochs_axis, history["train_loss"], label="Train Loss")
             plt.plot(epochs_axis, history["val_loss"], label="Val Loss")
             plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.title("Loss Curves"); plt.legend(); plt.tight_layout()
-            plt.savefig("training_loss_curve.png", dpi=150)
+            plt.savefig(str(REPO_ROOT / "training_loss_curve.png"), dpi=150)
             plt.close()
 
             plt.figure(figsize=(8,5))
@@ -318,7 +284,7 @@ class MinimalTrainer:
             plt.plot(epochs_axis, history["train_f1"], label="Train F1")
             plt.plot(epochs_axis, history["val_f1"], label="Val F1")
             plt.xlabel("Epoch"); plt.ylabel("Score"); plt.title("Accuracy & F1"); plt.legend(); plt.tight_layout()
-            plt.savefig("training_metrics_curve.png", dpi=150)
+            plt.savefig(str(REPO_ROOT / "training_metrics_curve.png"), dpi=150)
             plt.close()
             print("🖼️ Saved training charts: training_loss_curve.png, training_metrics_curve.png")
         except Exception as e:

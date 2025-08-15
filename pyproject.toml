@@ -35,9 +35,7 @@ exclude = [
   "build",
   "dist",
   ".git",
-  "colab_simple.py",
-  "colab_standalone.py",
-  "colab_train_simple.py",
+  # legacy colab files removed
 ]
 
 [tool.ruff.lint]
