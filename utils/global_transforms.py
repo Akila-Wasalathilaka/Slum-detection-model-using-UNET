@@ -58,7 +58,7 @@ def get_global_train_transforms(image_size=120):
         A.RGBShift(r_shift_limit=10, g_shift_limit=10, b_shift_limit=10, p=0.2),
         A.GaussNoise(var_limit=(5.0, 25.0), p=0.2),
         A.MotionBlur(blur_limit=3, p=0.2),
-        A.ImageCompression(quality_range=(70, 100), p=0.2),
+        A.ImageCompression(quality_lower=70, quality_upper=100, p=0.2),
         A.CoarseDropout(max_holes=6, max_height=16, max_width=16, p=0.2),
         A.Resize(image_size, image_size),
         A.Lambda(image=add_texture_channels),
