@@ -12,7 +12,8 @@ from pathlib import Path
 import argparse
 from tqdm import tqdm
 import sys
-sys.path.append('..')
+sys.path.insert(0, '.')
+sys.path.insert(0, '/content/Slum-detection-model-using-UNET')
 
 from models.enhanced_unet import create_enhanced_model
 from models.global_losses import ComboLossV2, OHEMLoss
