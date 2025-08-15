@@ -18,6 +18,7 @@ import albumentations as A
 from skimage import filters, morphology, measure
 from scipy import ndimage
 import matplotlib.pyplot as plt
+import copy
 
 class GlobalSlumDetector:
     def __init__(self, checkpoint_path: str, device: str = "auto"):
@@ -36,8 +37,8 @@ class GlobalSlumDetector:
         return model
     
     def _create_ema_model(self):
-        """Create EMA version for stable inference"""
-        ema_model = type(self.model)(self.model.config if hasattr(self.model, 'config') else {})
+        """Create EMA version for stable inference by deep-copying the loaded model"""
+        ema_model = copy.deepcopy(self.model)
         ema_model.load_state_dict(self.model.state_dict())
         ema_model.to(self.device)
         ema_model.eval()
