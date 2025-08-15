@@ -48,12 +48,17 @@ def setup_colab():
 # Run setup
 setup_colab()
 
+# Set random seeds for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
+
 # Import required modules
 import torch
 import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score, f1_score
 
 import segmentation_models_pytorch as smp
 from models.global_losses import ComboLossV2
@@ -111,20 +116,30 @@ def _build_smp_unet(encoder_name: str = "resnet34", in_channels: int = 6, classe
 
 class MinimalTrainer:
     """Minimal trainer for Colab"""
-    def __init__(self, data_root='data', batch_size=8, lr=1e-4):
+    def __init__(self, data_root='data', batch_size=16, lr=1e-4):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.data_root = Path(data_root)
         self.batch_size = batch_size
         self.lr = lr
 
+        # CUDA optimizations
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
         print(f"🔥 Device: {self.device}")
         # Create model (robust to 6-channel input with pretrained weights)
         self.model = _build_smp_unet(encoder_name="resnet34", in_channels=6, classes=1, pretrained=True)
-        self.model.to(self.device)
+        self.model.to(self.device, memory_format=torch.channels_last)
+        
+        # Compile model for speed
+        if hasattr(torch, 'compile'):
+            self.model = torch.compile(self.model)
 
         # Loss and optimizer
         self.criterion = ComboLossV2()
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4, fused=True)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=50)
 
         # Setup data
         self._setup_data()
@@ -147,19 +162,23 @@ class MinimalTrainer:
             transform=val_transform
         )
 
-        # Create loaders
+        # Create loaders with speed optimizations
         self.train_loader = DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=2
+            num_workers=4,
+            pin_memory=True,
+            persistent_workers=True
         )
 
         self.val_loader = DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=2
+            num_workers=4,
+            pin_memory=True,
+            persistent_workers=True
         )
 
         print(f"📊 Train: {len(self.train_dataset)}, Val: {len(self.val_dataset)}")
@@ -168,67 +187,98 @@ class MinimalTrainer:
         """Train one epoch"""
         self.model.train()
         total_loss = 0
+        all_preds, all_targets = [], []
 
         for images, masks in tqdm(self.train_loader, desc="Training"):
-            images, masks = images.to(self.device), masks.to(self.device)
+            images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
+            masks = masks.to(self.device, non_blocking=True)
 
-            self.optimizer.zero_grad()
-            outputs = self.model(images)
-
-            if isinstance(outputs, dict):
-                main_loss, _ = self.criterion(outputs['main'], masks)
-                boundary_loss = nn.BCEWithLogitsLoss()(outputs['boundary'], masks)
-                loss = main_loss + 0.3 * boundary_loss
-            else:
-                loss, _ = self.criterion(outputs, masks)
+            self.optimizer.zero_grad(set_to_none=True)
+            
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                outputs = self.model(images)
+                
+                if isinstance(outputs, dict):
+                    main_loss, _ = self.criterion(outputs['main'], masks)
+                    boundary_loss = nn.BCEWithLogitsLoss()(outputs['boundary'], masks)
+                    loss = main_loss + 0.3 * boundary_loss
+                    preds = torch.sigmoid(outputs['main'])
+                else:
+                    loss, _ = self.criterion(outputs, masks)
+                    preds = torch.sigmoid(outputs)
 
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
             self.optimizer.step()
-
             total_loss += loss.item()
+            
+            # Collect predictions for metrics
+            all_preds.append((preds > 0.5).cpu().numpy().flatten())
+            all_targets.append(masks.cpu().numpy().flatten())
 
-        return total_loss / len(self.train_loader)
+        # Calculate metrics
+        all_preds = np.concatenate(all_preds)
+        all_targets = np.concatenate(all_targets)
+        acc = accuracy_score(all_targets, all_preds)
+        f1 = f1_score(all_targets, all_preds, zero_division=0)
+        
+        return total_loss / len(self.train_loader), acc, f1
 
     def validate(self):
         """Validate model"""
         self.model.eval()
         total_loss = 0
+        all_preds, all_targets = [], []
 
         with torch.no_grad():
             for images, masks in tqdm(self.val_loader, desc="Validation"):
-                images, masks = images.to(self.device), masks.to(self.device)
+                images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
+                masks = masks.to(self.device, non_blocking=True)
 
-                outputs = self.model(images)
-                if isinstance(outputs, dict):
-                    outputs = outputs['main']
+                with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    outputs = self.model(images)
+                    if isinstance(outputs, dict):
+                        outputs = outputs['main']
 
-                loss, _ = self.criterion(outputs, masks)
-                total_loss += loss.item()
+                    loss, _ = self.criterion(outputs, masks)
+                    total_loss += loss.item()
+                    
+                    preds = torch.sigmoid(outputs)
+                    all_preds.append((preds > 0.5).cpu().numpy().flatten())
+                    all_targets.append(masks.cpu().numpy().flatten())
 
-        return total_loss / len(self.val_loader)
+        # Calculate metrics
+        all_preds = np.concatenate(all_preds)
+        all_targets = np.concatenate(all_targets)
+        acc = accuracy_score(all_targets, all_preds)
+        f1 = f1_score(all_targets, all_preds, zero_division=0)
+        
+        return total_loss / len(self.val_loader), acc, f1
 
     def train(self, epochs=50):
         """Train model"""
-        best_val_loss = float('inf')
+        best_val_f1 = 0.0
 
         for epoch in range(epochs):
             print(f"\nEpoch {epoch+1}/{epochs}")
 
-            train_loss = self.train_epoch()
-            val_loss = self.validate()
+            train_loss, train_acc, train_f1 = self.train_epoch()
+            val_loss, val_acc, val_f1 = self.validate()
+            
+            current_lr = self.optimizer.param_groups[0]['lr']
+            self.scheduler.step()
 
-            print(f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+            print(f"LR: {current_lr:.6f} | Train - Loss: {train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}")
+            print(f"Val - Loss: {val_loss:.4f}, Acc: {val_acc:.4f}, F1: {val_f1:.4f}")
 
-            # Save best model
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
+            # Save best model based on F1 score
+            if val_f1 > best_val_f1:
+                best_val_f1 = val_f1
                 torch.save({
                     'model_state_dict': self.model.state_dict(),
                     'epoch': epoch,
-                    'val_loss': val_loss
+                    'val_f1': val_f1
                 }, 'best_global_model.pth')
-                print(f"✅ Best model saved! Val Loss: {val_loss:.4f}")
+                print(f"✅ Best model saved! Val F1: {val_f1:.4f}")
 
         print("🎉 Training completed!")
 
@@ -242,7 +292,7 @@ if __name__ == "__main__":
     # Create trainer and start training
     trainer = MinimalTrainer(
         data_root='data',
-        batch_size=8,  # Small batch for Colab
+        batch_size=16,  # Doubled batch size
         lr=1e-4
     )
 
