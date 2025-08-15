@@ -131,8 +131,8 @@ class MinimalTrainer:
 
     def _setup_data(self):
         """Setup datasets and loaders"""
-        train_transform = get_global_train_transforms()
-        val_transform = get_global_val_transforms()
+        train_transform = get_global_train_transforms(image_size=128)
+        val_transform = get_global_val_transforms(image_size=128)
 
         # Create datasets
         self.train_dataset = SlumDataset(
