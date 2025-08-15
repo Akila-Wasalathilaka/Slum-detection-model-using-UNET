@@ -55,6 +55,8 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
+import contextlib
+import matplotlib.pyplot as plt
 
 import segmentation_models_pytorch as smp
 from models.global_losses import ComboLossV2
@@ -131,14 +133,21 @@ class MinimalTrainer:
         # Create model (robust to 6-channel input with pretrained weights)
         self.model = _build_smp_unet(encoder_name="resnet34", in_channels=6, classes=1, pretrained=True)
         self.model.to(self.device, memory_format=torch.channels_last)
-        
-        # Compile model for speed
+
+        # Compile model for speed (optional)
         if hasattr(torch, 'compile'):
-            self.model = torch.compile(self.model)
+            try:
+                self.model = torch.compile(self.model)
+            except Exception:
+                pass
 
         # Loss and optimizer
         self.criterion = ComboLossV2()
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4, fused=True)
+        # AdamW fused fallback if not available
+        try:
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4, fused=True)
+        except TypeError:
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=50)
 
         # Setup data
@@ -189,15 +198,17 @@ class MinimalTrainer:
         total_loss = 0
         all_preds, all_targets = [], []
 
+        amp = torch.cuda.is_available()
         for images, masks in tqdm(self.train_loader, desc="Training"):
             images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
             masks = masks.to(self.device, non_blocking=True)
 
             self.optimizer.zero_grad(set_to_none=True)
-            
-            with torch.autocast(device_type='cuda', dtype=torch.float16):
+
+            cm = torch.autocast(device_type='cuda', dtype=torch.float16) if amp else contextlib.nullcontext()
+            with cm:
                 outputs = self.model(images)
-                
+
                 if isinstance(outputs, dict):
                     main_loss, _ = self.criterion(outputs['main'], masks)
                     boundary_loss = nn.BCEWithLogitsLoss()(outputs['boundary'], masks)
@@ -210,7 +221,7 @@ class MinimalTrainer:
             loss.backward()
             self.optimizer.step()
             total_loss += loss.item()
-            
+
             # Collect predictions for metrics
             all_preds.append((preds > 0.5).cpu().numpy().flatten())
             all_targets.append(masks.cpu().numpy().flatten())
@@ -220,7 +231,7 @@ class MinimalTrainer:
         all_targets = np.concatenate(all_targets)
         acc = accuracy_score(all_targets, all_preds)
         f1 = f1_score(all_targets, all_preds, zero_division=0)
-        
+
         return total_loss / len(self.train_loader), acc, f1
 
     def validate(self):
@@ -230,18 +241,20 @@ class MinimalTrainer:
         all_preds, all_targets = [], []
 
         with torch.no_grad():
+            amp = torch.cuda.is_available()
             for images, masks in tqdm(self.val_loader, desc="Validation"):
                 images = images.to(self.device, non_blocking=True, memory_format=torch.channels_last)
                 masks = masks.to(self.device, non_blocking=True)
 
-                with torch.autocast(device_type='cuda', dtype=torch.float16):
+                cm = torch.autocast(device_type='cuda', dtype=torch.float16) if amp else contextlib.nullcontext()
+                with cm:
                     outputs = self.model(images)
                     if isinstance(outputs, dict):
                         outputs = outputs['main']
 
                     loss, _ = self.criterion(outputs, masks)
                     total_loss += loss.item()
-                    
+
                     preds = torch.sigmoid(outputs)
                     all_preds.append((preds > 0.5).cpu().numpy().flatten())
                     all_targets.append(masks.cpu().numpy().flatten())
@@ -251,24 +264,33 @@ class MinimalTrainer:
         all_targets = np.concatenate(all_targets)
         acc = accuracy_score(all_targets, all_preds)
         f1 = f1_score(all_targets, all_preds, zero_division=0)
-        
+
         return total_loss / len(self.val_loader), acc, f1
 
     def train(self, epochs=50):
         """Train model"""
         best_val_f1 = 0.0
+        history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": [], "train_f1": [], "val_f1": []}
 
         for epoch in range(epochs):
             print(f"\nEpoch {epoch+1}/{epochs}")
 
             train_loss, train_acc, train_f1 = self.train_epoch()
             val_loss, val_acc, val_f1 = self.validate()
-            
+
             current_lr = self.optimizer.param_groups[0]['lr']
             self.scheduler.step()
 
             print(f"LR: {current_lr:.6f} | Train - Loss: {train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}")
             print(f"Val - Loss: {val_loss:.4f}, Acc: {val_acc:.4f}, F1: {val_f1:.4f}")
+
+            # log history
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
+            history["train_acc"].append(train_acc)
+            history["val_acc"].append(val_acc)
+            history["train_f1"].append(train_f1)
+            history["val_f1"].append(val_f1)
 
             # Save best model based on F1 score
             if val_f1 > best_val_f1:
@@ -279,6 +301,28 @@ class MinimalTrainer:
                     'val_f1': val_f1
                 }, 'best_global_model.pth')
                 print(f"✅ Best model saved! Val F1: {val_f1:.4f}")
+
+        # Save training curves
+        try:
+            epochs_axis = range(1, len(history["train_loss"]) + 1)
+            plt.figure(figsize=(8,5))
+            plt.plot(epochs_axis, history["train_loss"], label="Train Loss")
+            plt.plot(epochs_axis, history["val_loss"], label="Val Loss")
+            plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.title("Loss Curves"); plt.legend(); plt.tight_layout()
+            plt.savefig("training_loss_curve.png", dpi=150)
+            plt.close()
+
+            plt.figure(figsize=(8,5))
+            plt.plot(epochs_axis, history["train_acc"], label="Train Acc")
+            plt.plot(epochs_axis, history["val_acc"], label="Val Acc")
+            plt.plot(epochs_axis, history["train_f1"], label="Train F1")
+            plt.plot(epochs_axis, history["val_f1"], label="Val F1")
+            plt.xlabel("Epoch"); plt.ylabel("Score"); plt.title("Accuracy & F1"); plt.legend(); plt.tight_layout()
+            plt.savefig("training_metrics_curve.png", dpi=150)
+            plt.close()
+            print("🖼️ Saved training charts: training_loss_curve.png, training_metrics_curve.png")
+        except Exception as e:
+            print(f"⚠️ Could not save training charts: {e}")
 
         print("🎉 Training completed!")
 

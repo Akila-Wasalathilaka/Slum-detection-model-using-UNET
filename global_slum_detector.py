@@ -22,16 +22,54 @@ import copy
 
 class GlobalSlumDetector:
     def __init__(self, checkpoint_path: str, device: str = "auto"):
-        self.device = torch.device("cuda" if torch.cuda.is_available() and device == "auto" else device)
+        # Resolve device string robustly
+        if device == "auto":
+            resolved = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            resolved = device
+        self.device = torch.device(resolved)
         self.model = self._load_model(checkpoint_path)
         self.ema_model = self._create_ema_model()
 
     def _load_model(self, checkpoint_path: str):
-        """Load model with enhanced architecture"""
+        """Load model with enhanced architecture and flexible key remapping.
+
+        Supports checkpoints saved from:
+        - EnhancedUNet wrapper (keys start with 'unet.')
+        - Raw SMP Unet (no 'unet.' prefix)
+        - torch.compile or DataParallel (keys prefixed with '_orig_mod.' or 'module.')
+        """
         from models.enhanced_unet import create_enhanced_model
         model = create_enhanced_model()
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+
+        # Extract state dict
+        state_dict = checkpoint.get('model_state_dict', checkpoint)
+
+        # Normalize known wrappers/prefixes
+        remapped = {}
+        for k, v in state_dict.items():
+            nk = k
+            if nk.startswith('module.'):
+                nk = nk[len('module.'):]
+            if nk.startswith('_orig_mod.'):
+                nk = nk[len('_orig_mod.'):]
+            # If coming from raw SMP Unet (no 'unet.'), add it to match EnhancedUNet
+            if not nk.startswith('unet.') and (
+                nk.startswith('encoder.') or nk.startswith('decoder.') or nk.startswith('segmentation_head.') or nk.startswith('classification_head.')
+            ):
+                nk = 'unet.' + nk
+            remapped[nk] = v
+
+        # Try loading non-strictly to allow minor head differences
+        incompat = model.load_state_dict(remapped, strict=False)
+        if getattr(incompat, 'missing_keys', None):
+            missing = incompat.missing_keys
+            print(f"[Loader] Missing keys after remap: {len(missing)} (showing up to 5): {missing[:5]}")
+        if getattr(incompat, 'unexpected_keys', None):
+            unexpected = incompat.unexpected_keys
+            print(f"[Loader] Unexpected keys after remap: {len(unexpected)} (showing up to 5): {unexpected[:5]}")
+
         model.to(self.device)
         model.eval()
         return model
