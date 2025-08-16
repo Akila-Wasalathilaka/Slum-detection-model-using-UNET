@@ -224,27 +224,40 @@ class GlobalSlumDetector:
     def _predict_tile_single(self, tile: np.ndarray, use_tent: bool) -> Tuple[np.ndarray, np.ndarray]:
         """Single tile prediction with optional TENT adaptation"""
         # Preprocess tile
-        processed_tile = self._preprocess_tile(tile)
+        processed_tile = self._preprocess_tile(tile)  # (1, C, H, W)
+
+        # Ensure H and W are multiples of 32 by padding on the bottom/right, then crop back
+        _, _, oh, ow = processed_tile.shape
+        pad_h = (32 - (oh % 32)) % 32
+        pad_w = (32 - (ow % 32)) % 32
+        if pad_h or pad_w:
+            processed_padded = torch.nn.functional.pad(processed_tile, (0, pad_w, 0, pad_h), mode='constant', value=0.0)
+        else:
+            processed_padded = processed_tile
+
         # Forward prediction (allow grads for TENT only)
         if use_tent:
-            pred = self._tent_predict(processed_tile)
+            pred_logits = self._tent_predict(processed_padded)
         else:
             with torch.no_grad():
-                pred = self.model(processed_tile)
+                pred_logits = self.model(processed_padded)
+
+        # Crop back to original tile size
+        pred_logits = pred_logits[..., :oh, :ow]
 
         # MC Dropout for uncertainty under no_grad
         uncertainties = []
         self.model.train()  # enable dropout
         with torch.no_grad():
             for _ in range(5):
-                mc_pred = self.model(processed_tile)
+                mc_pred = self.model(processed_padded)[..., :oh, :ow]
                 uncertainties.append(torch.sigmoid(mc_pred).cpu().numpy())
         self.model.eval()
 
         uncertainties = np.stack(uncertainties)
         uncertainty = np.std(uncertainties, axis=0).squeeze()
 
-        pred = torch.sigmoid(pred).cpu().numpy().squeeze()
+        pred = torch.sigmoid(pred_logits).cpu().numpy().squeeze()
         return pred, uncertainty
 
     def _preprocess_tile(self, tile: np.ndarray) -> torch.Tensor:
