@@ -17,18 +17,18 @@ class TrainingConfig:
     """
     Configuration class for training parameters and settings.
     """
-    
+
     # Training Parameters
     epochs: int = 100
     batch_size: int = 16
     learning_rate: float = 1e-4
     weight_decay: float = 1e-5
-    
+
     # Optimizer Settings
     optimizer: str = "adam"  # adam, adamw, sgd
     momentum: float = 0.9    # for SGD
     betas: tuple = (0.9, 0.999)  # for Adam/AdamW
-    
+
     # Learning Rate Scheduling
     scheduler: str = "cosine"  # cosine, plateau, step, exponential
     scheduler_params: Dict[str, Any] = field(default_factory=lambda: {
@@ -38,7 +38,7 @@ class TrainingConfig:
         "factor": 0.5,     # for plateau/step
         "gamma": 0.95      # for exponential
     })
-    
+
     # Loss Function
     loss_type: str = "combined"  # bce, dice, focal, tversky, combined
     loss_params: Dict[str, Any] = field(default_factory=lambda: {
@@ -48,54 +48,56 @@ class TrainingConfig:
         "focal_alpha": 1.0,
         "focal_gamma": 2.0
     })
-    
+
     # Class Balancing
     class_weights: Optional[Dict[str, float]] = field(default_factory=lambda: {
         "pos_weight": 2.0  # Weight for positive class
     })
     use_weighted_sampling: bool = False
-    
+
     # Regularization
     dropout_rate: float = 0.1
     use_mixup: bool = False
     mixup_alpha: float = 0.2
     use_cutmix: bool = False
     cutmix_alpha: float = 1.0
-    
+
     # Early Stopping
     early_stopping: bool = True
     patience: int = 15
     min_delta: float = 1e-4
     monitor_metric: str = "val_dice"  # val_loss, val_iou, val_dice, val_f1
     mode: str = "max"  # max for metrics, min for loss
-    
+
     # Validation
     val_split: float = 0.1  # Fraction of training data for validation
     val_frequency: int = 1  # Validate every N epochs
-    
+
     # Checkpointing
     save_best_only: bool = True
     save_frequency: int = 10  # Save checkpoint every N epochs
     max_checkpoints: int = 5   # Keep only N best checkpoints
-    
+
     # Mixed Precision Training
     use_amp: bool = True  # Automatic Mixed Precision
     grad_clip_norm: Optional[float] = 1.0
-    
+    # Gradient Accumulation for effective larger batch sizes
+    grad_accum_steps: int = 1
+
     # Logging and Monitoring
     log_frequency: int = 10  # Log every N batches
     plot_frequency: int = 5   # Plot results every N epochs
-    
+
     # Experiment Settings
     experiment_name: str = "slum_detection"
     seed: int = 42
     num_workers: int = 4
     pin_memory: bool = True
-    
+
     # Hardware Settings
     device: str = "auto"  # auto, cuda, cpu
     multi_gpu: bool = False
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
@@ -138,18 +140,18 @@ class TrainingConfig:
             'device': self.device,
             'multi_gpu': self.multi_gpu
         }
-    
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'TrainingConfig':
         """Create config from dictionary."""
         return cls(**config_dict)
-    
+
     def save(self, filepath: str):
         """Save configuration to JSON file."""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2)
-    
+
     @classmethod
     def load(cls, filepath: str) -> 'TrainingConfig':
         """Load configuration from JSON file."""
@@ -168,7 +170,7 @@ PRESET_TRAINING_CONFIGS = {
         save_frequency=5,
         experiment_name="quick_test"
     ),
-    
+
     "development": TrainingConfig(
         epochs=50,
         batch_size=16,
@@ -178,7 +180,7 @@ PRESET_TRAINING_CONFIGS = {
         use_amp=False,  # Disable AMP for debugging
         experiment_name="development"
     ),
-    
+
     "production": TrainingConfig(
         epochs=150,
         batch_size=32,
@@ -188,7 +190,27 @@ PRESET_TRAINING_CONFIGS = {
         use_amp=True,
         experiment_name="production"
     ),
-    
+
+    "upscale": TrainingConfig(
+        epochs=200,
+        batch_size=4,
+        learning_rate=1e-4,
+        weight_decay=1e-4,
+        optimizer="adamw",
+        scheduler="cosine",
+        scheduler_params={
+            "T_max": 200,
+            "eta_min": 1e-6
+        },
+        early_stopping=True,
+        patience=20,
+        use_amp=True,
+        grad_clip_norm=1.0,
+        grad_accum_steps=4,
+        num_workers=8,
+        experiment_name="upscale"
+    ),
+
     "high_precision": TrainingConfig(
         epochs=200,
         batch_size=16,
@@ -202,7 +224,7 @@ PRESET_TRAINING_CONFIGS = {
         patience=25,
         experiment_name="high_precision"
     ),
-    
+
     "high_recall": TrainingConfig(
         epochs=200,
         batch_size=16,
@@ -216,7 +238,7 @@ PRESET_TRAINING_CONFIGS = {
         patience=25,
         experiment_name="high_recall"
     ),
-    
+
     "balanced": TrainingConfig(
         epochs=100,
         batch_size=16,
@@ -237,17 +259,17 @@ PRESET_TRAINING_CONFIGS = {
 def get_training_config(preset: str = "development") -> TrainingConfig:
     """
     Get a predefined training configuration.
-    
+
     Args:
         preset: Configuration preset name
-    
+
     Returns:
         TrainingConfig instance
     """
     if preset not in PRESET_TRAINING_CONFIGS:
         available = list(PRESET_TRAINING_CONFIGS.keys())
         raise ValueError(f"Unknown preset '{preset}'. Available: {available}")
-    
+
     return PRESET_TRAINING_CONFIGS[preset]
 
 
@@ -300,7 +322,7 @@ def print_training_config_info():
     """Print information about available training configurations."""
     print("🏋️  TRAINING CONFIGURATION OPTIONS")
     print("=" * 50)
-    
+
     print("\n📋 Available Presets:")
     for name, config in PRESET_TRAINING_CONFIGS.items():
         print(f"  {name.upper()}:")
@@ -310,13 +332,13 @@ def print_training_config_info():
         print(f"    Loss Type: {config.loss_type}")
         print(f"    Early Stopping: {config.early_stopping}")
         print()
-    
+
     print("⚙️  Available Optimizers:")
     optimizers = get_optimizer_options()
     for name, info in optimizers.items():
         print(f"  {name.upper()}: {info['description']}")
     print()
-    
+
     print("📈 Available Schedulers:")
     schedulers = get_scheduler_options()
     for name, info in schedulers.items():
@@ -326,20 +348,20 @@ def print_training_config_info():
 if __name__ == "__main__":
     # Test configuration
     print("Testing Training Configuration...")
-    
+
     # Create and test config
     config = get_training_config("development")
     print(f"Loaded config: {config.experiment_name}")
     print(f"Epochs: {config.epochs}, Batch Size: {config.batch_size}")
-    
+
     # Test save/load
     config.save("test_training_config.json")
     loaded_config = TrainingConfig.load("test_training_config.json")
     print(f"Saved and loaded successfully: {loaded_config.optimizer}")
-    
+
     # Clean up
     if os.path.exists("test_training_config.json"):
         os.remove("test_training_config.json")
-    
+
     print("\n")
     print_training_config_info()

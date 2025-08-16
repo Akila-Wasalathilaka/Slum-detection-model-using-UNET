@@ -101,10 +101,10 @@ print(f"Adaptive threshold: {result['threshold']:.3f}")
 cv2.imwrite("overlay.jpg", cv2.cvtColor(result['overlay'], cv2.COLOR_RGB2BGR))
 ```
 
-### Training Global Model
-Run the trainer; it saves best_global_model.pth and charts to the repo root.
+### Training
+Use the unified trainer; it saves best_model.pth and charts to the repo root.
 ```bash
-python scripts/train_global.py --data_root data --batch_size 16 --epochs 100 --lr 1e-4
+python scripts/train.py --data_root data --batch_size 16 --epochs 100 --lr 1e-4
 ```
 
 ## 🌍 Global Deployment
@@ -130,13 +130,15 @@ slum-detection-model/
 ├── 🌍 global_slum_detector.py     # Main detection system
 ├── 🏗️ models/
 │   ├── enhanced_unet.py           # UNet wrapper (6-ch input)
-│   └── global_losses.py           # Losses
+│   └── unet.py                    # Model factory helpers
 ├── 🛠️ utils/
-│   └── global_transforms.py       # Domain generalization
+│   ├── transforms.py              # Augmentations
+│   └── dataset.py                 # Dataset and loaders
 ├── 🎯 scripts/
-│   ├── train_global.py            # Training
+│   ├── train.py                   # Unified trainer (binary or multiclass)
 │   ├── batch_predict.py           # Batch inference to outputs/
-│   └── evaluate_and_charts.py     # Per-image panels and charts
+│   ├── evaluate_and_charts.py     # Per-image panels and charts
+│   └── predict_multiclass.py      # Quick multiclass predictions + overlays
 └── 📊 data/                       # Your dataset
 ```
 

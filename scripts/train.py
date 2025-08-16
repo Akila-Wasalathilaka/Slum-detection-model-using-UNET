@@ -160,6 +160,9 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, epoch
     # Enable mixed precision if configured
     scaler = torch.cuda.amp.GradScaler() if config.use_amp else None
 
+    accum_steps = max(1, getattr(config, 'grad_accum_steps', 1))
+    optimizer.zero_grad(set_to_none=True)
+
     for batch_idx, (images, masks) in enumerate(train_loader):
         images, masks = images.to(device), masks.to(device)
 
@@ -169,8 +172,6 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, epoch
             if len(masks.shape) == 3:
                 masks = masks.unsqueeze(1)
             masks = masks.float()
-
-        optimizer.zero_grad()
 
         # Forward pass with mixed precision
         if config.use_amp:
@@ -182,18 +183,25 @@ def train_epoch(model, train_loader, criterion, optimizer, device, config, epoch
             loss = criterion(outputs, masks if not is_multiclass else masks.long())
 
         # Backward pass
-        if config.use_amp:
-            scaler.scale(loss).backward()
-            if config.grad_clip_norm:
-                scaler.unscale_(optimizer)
-                nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip_norm)
-            scaler.step(optimizer)
-            scaler.update()
+        if config.use_amp and scaler is not None:
+            scaler.scale(loss / accum_steps).backward()
+            # Step on accumulation boundary or last batch
+            do_step = ((batch_idx + 1) % accum_steps == 0) or ((batch_idx + 1) == len(train_loader))
+            if do_step:
+                if config.grad_clip_norm:
+                    scaler.unscale_(optimizer)
+                    nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip_norm)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
         else:
-            loss.backward()
-            if config.grad_clip_norm:
-                nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip_norm)
-            optimizer.step()
+            (loss / accum_steps).backward()
+            do_step = ((batch_idx + 1) % accum_steps == 0) or ((batch_idx + 1) == len(train_loader))
+            if do_step:
+                if config.grad_clip_norm:
+                    nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip_norm)
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
         # Calculate metrics
         with torch.no_grad():
@@ -421,12 +429,12 @@ def main():
 
     # Create checkpoint manager
     checkpoint_manager = CheckpointManager(
-        exp_dir / "checkpoints",
+        str(exp_dir / "checkpoints"),
         max_checkpoints=training_config.max_checkpoints
     )
 
     # Create visualizer
-    visualizer = TrainingVisualizer(exp_dir / "plots")
+    visualizer = TrainingVisualizer(str(exp_dir / "plots"))
 
     # Early stopping
     early_stopping = None
@@ -585,7 +593,8 @@ def main():
             )
 
             # Generate predictions on test set
-            test_images_dir = data_config.data_root / "test" / "images"
+            from pathlib import Path as _Path
+            test_images_dir = _Path(data_config.data_root) / "test" / "images"
             if test_images_dir.exists():
                 batch_results = detector.predict_batch(
                     image_dir=str(test_images_dir),

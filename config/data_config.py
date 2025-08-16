@@ -270,6 +270,20 @@ PRESET_DATA_CONFIGS = {
         use_tile_masks_only=True
     ),
 
+    "upscale": DataConfig(
+        batch_size=4,
+        use_augmentation=True,
+        augmentation_probability=0.8,
+        image_size=(512, 512),
+        num_workers=8,
+        gaussian_blur=True,
+        elastic_transform=True,
+        grid_distortion=True,
+        cutout=True,
+        cutout_holes=12,
+        use_tile_masks_only=True
+    ),
+
     "all_data": DataConfig(
         batch_size=16,
         use_augmentation=True,
