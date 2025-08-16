@@ -105,36 +105,18 @@ class AdvancedSlumDataset(Dataset):
         
         return image, torch.tensor(mask, dtype=torch.long)
 
-def get_advanced_transforms(is_train=True, img_size=320):
+def get_advanced_transforms(is_train=True, img_size=224):
     """Advanced augmentation pipeline"""
     if is_train:
         return A.Compose([
             A.Resize(img_size, img_size),
             
-            # Enhanced geometric augmentations
+            # Memory-efficient augmentations
             A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.4),
+            A.VerticalFlip(p=0.3),
             A.RandomRotate90(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.08, scale_limit=0.15, rotate_limit=15, p=0.4),
-            A.ElasticTransform(p=0.2),
-            A.GridDistortion(p=0.2),
-            
-            # Enhanced color augmentations
-            A.OneOf([
-                A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=1.0),
-                A.CLAHE(clip_limit=3.0, tile_grid_size=(8, 8), p=1.0),
-                A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=15, val_shift_limit=10, p=1.0),
-            ], p=0.5),
-            
-            # Controlled noise and blur
-            A.OneOf([
-                A.GaussNoise(var_limit=(5.0, 30.0), p=1.0),
-                A.GaussianBlur(blur_limit=3, p=1.0),
-                A.MotionBlur(blur_limit=3, p=1.0),
-            ], p=0.3),
-            
-            # Regularization
-            A.CoarseDropout(max_holes=6, max_height=20, max_width=20, p=0.2),
+            A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.3),
+            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.3),
             
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
@@ -149,7 +131,7 @@ def get_advanced_transforms(is_train=True, img_size=320):
 class AdvancedUNet(nn.Module):
     """Advanced U-Net++ with EfficientNet backbone"""
     
-    def __init__(self, encoder_name='efficientnet-b4', num_classes=7, encoder_weights='imagenet'):
+    def __init__(self, encoder_name='efficientnet-b3', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
         
         # Use UNet++ for better feature aggregation
@@ -241,11 +223,11 @@ def calculate_metrics(pred, target, num_classes=7):
     return float(accuracy), class_metrics
 
 def train_epoch(model, loader, criterion, optimizer, device, scaler=None):
-    """Advanced training epoch with mixed precision"""
+    """Memory-optimized training epoch"""
     model.train()
     total_loss = 0
-    all_preds = []
-    all_targets = []
+    correct_pixels = 0
+    total_pixels = 0
     
     for images, masks in tqdm(loader, desc="Training"):
         images, masks = images.to(device), masks.to(device)
@@ -268,18 +250,16 @@ def train_epoch(model, loader, criterion, optimizer, device, scaler=None):
         
         total_loss += loss.item()
         
-        # Collect predictions for metrics
-        pred = outputs.argmax(dim=1)
-        all_preds.append(pred.cpu())
-        all_targets.append(masks.cpu())
-    
-    # Calculate metrics
-    all_preds = torch.cat(all_preds)
-    all_targets = torch.cat(all_targets)
-    accuracy, class_metrics = calculate_metrics(all_preds, all_targets)
+        # Simple accuracy calculation without storing tensors
+        with torch.no_grad():
+            pred = outputs.argmax(dim=1)
+            correct_pixels += (pred == masks).sum().item()
+            total_pixels += masks.numel()
     
     avg_loss = total_loss / len(loader)
-    return avg_loss, accuracy, class_metrics
+    accuracy = correct_pixels / total_pixels if total_pixels > 0 else 0.0
+    
+    return avg_loss, accuracy, {}
 
 def validate_epoch(model, loader, criterion, device):
     """Validation epoch"""
@@ -289,7 +269,7 @@ def validate_epoch(model, loader, criterion, device):
     all_targets = []
     
     with torch.no_grad():
-        for images, masks in tqdm(loader, desc="Validation"):
+        for batch_idx, (images, masks) in enumerate(tqdm(loader, desc="Validation")):
             images, masks = images.to(device), masks.to(device)
             
             outputs = model(images)
@@ -297,14 +277,19 @@ def validate_epoch(model, loader, criterion, device):
             
             total_loss += loss.item()
             
-            pred = outputs.argmax(dim=1)
-            all_preds.append(pred.cpu())
-            all_targets.append(masks.cpu())
+            # Collect predictions for metrics (sample to save memory)
+            if batch_idx < 20:  # Only first 20 batches for metrics
+                pred = outputs.argmax(dim=1)
+                all_preds.append(pred.cpu())
+                all_targets.append(masks.cpu())
     
     # Calculate metrics
-    all_preds = torch.cat(all_preds)
-    all_targets = torch.cat(all_targets)
-    accuracy, class_metrics = calculate_metrics(all_preds, all_targets)
+    if all_preds:
+        all_preds = torch.cat(all_preds)
+        all_targets = torch.cat(all_targets)
+        accuracy, class_metrics = calculate_metrics(all_preds, all_targets)
+    else:
+        accuracy, class_metrics = 0.0, {}
     
     avg_loss = total_loss / len(loader)
     return avg_loss, accuracy, class_metrics
@@ -322,17 +307,17 @@ def save_training_state(model, optimizer, scheduler, epoch, metrics, filepath):
 def main():
     """Main training function"""
     
-    # Enhanced Configuration for better accuracy
+    # Memory-optimized configuration for Kaggle P100
     CONFIG = {
-        'IMG_SIZE': 320,  # Higher resolution for better boundary detection
-        'BATCH_SIZE': 6,  # Adjusted for larger images
-        'EPOCHS': 60,     # More epochs for convergence
-        'LEARNING_RATE': 5e-5,  # Lower LR for stability
-        'ENCODER': 'efficientnet-b4',
+        'IMG_SIZE': 224,  # Reduced for memory efficiency
+        'BATCH_SIZE': 4,  # Smaller batch size
+        'EPOCHS': 40,     # Reasonable epochs
+        'LEARNING_RATE': 1e-4,  # Standard LR
+        'ENCODER': 'efficientnet-b3',  # Smaller encoder
         'USE_MIXED_PRECISION': True,
-        'EARLY_STOPPING_PATIENCE': 15,  # More patience
-        'REDUCE_LR_PATIENCE': 7,
-        'FOCAL_GAMMA': 2.5,  # Higher gamma for hard examples
+        'EARLY_STOPPING_PATIENCE': 10,
+        'REDUCE_LR_PATIENCE': 5,
+        'FOCAL_GAMMA': 2.0,
     }
     
     print("🚀 ADVANCED SLUM DETECTION TRAINING")
@@ -349,39 +334,20 @@ def main():
     val_dataset = AdvancedSlumDataset('data/val/images', 'data/val/masks', 
                                      transform=val_transform, is_train=False)
     
-    # Create weighted sampler for balanced training
-    if hasattr(train_dataset, 'class_weights'):
-        sampler = WeightedRandomSampler(train_dataset.class_weights, len(train_dataset))
-        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                                 sampler=sampler, num_workers=4, pin_memory=True)
-    else:
-        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                                 shuffle=True, num_workers=4, pin_memory=True)
+    # Create data loaders with memory optimization
+    train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
+                             shuffle=True, num_workers=2, pin_memory=False)
     
     val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                           shuffle=False, num_workers=4, pin_memory=True)
+                           shuffle=False, num_workers=2, pin_memory=False)
     
     # Create advanced model
     model = AdvancedUNet(encoder_name=CONFIG['ENCODER'], num_classes=7).to(device)
     
-    # Calculate class weights from a sample of the dataset
-    print("🔍 Calculating class weights...")
-    class_counts = torch.zeros(7)
-    sample_size = min(500, len(train_dataset))  # Reduced sample size
-    
-    for i in tqdm(range(sample_size), desc="Sampling for weights"):
-        _, mask = train_dataset[i]
-        for class_id in range(7):
-            class_counts[class_id] += (mask == class_id).sum()
-    
-    # Add small epsilon to avoid division by zero
-    class_counts = class_counts + 1e-6
-    total_pixels = class_counts.sum()
-    class_weights = total_pixels / (7 * class_counts)
-    
-    # Normalize weights to prevent extreme values
-    class_weights = torch.clamp(class_weights, min=0.1, max=10.0)
-    class_weights = class_weights.to(device)
+    # Simplified class weights based on known distribution
+    print("🔍 Setting class weights...")
+    # Based on analysis: [0.08%, 12.44%, 31.89%, 18.75%, 15.84%, 9.15%, 11.84%]
+    class_weights = torch.tensor([10.0, 1.0, 0.5, 1.0, 1.0, 2.0, 1.5]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
