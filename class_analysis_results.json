@@ -1,0 +1,16 @@
+{
+  "class_mapping": {
+    "40": "Class_0",
+    "120": "Class_1",
+    "240": "Class_2"
+  },
+  "global_distribution": {
+    "40": 432000,
+    "120": 432000,
+    "240": 432000
+  },
+  "directory_info": {
+    "data/train/masks": {
+      "file_count": 7128,
+      "unique_values": [
+        
