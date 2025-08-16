@@ -1,6 +1,36 @@
-# Slum Detection Using U-Net Architecture
+# Advanced Slum Detection Using U-Net Architecture
 
-A clean, minimal implementation for multi-class slum detection using U-Net architecture.
+A comprehensive, state-of-the-art implementation for multi-class slum detection using advanced U-Net architecture with EfficientNet backbone.
+
+## 🚀 Kaggle Quick Start (One-Click Solution)
+
+### Option 1: Complete Pipeline (Recommended)
+```python
+# In Kaggle Notebook, run this single command:
+!git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git
+%cd Slum-detection-model-using-UNET
+!python kaggle_complete_pipeline.py
+```
+
+### Option 2: Step-by-Step
+```python
+# 1. Clone and setup
+!git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git
+%cd Slum-detection-model-using-UNET
+!python kaggle_setup.py
+
+# 2. Run analysis
+!python quick_analysis.py
+
+# 3. Train advanced model
+!python advanced_training.py
+
+# 4. Generate charts
+!python create_charts.py
+
+# 5. Make predictions
+!python make_predictions.py --num 25
+```
 
 ## Dataset Analysis Results
 
@@ -20,47 +50,36 @@ Based on comprehensive analysis, the dataset contains:
   - Test: 891 images
   - Image size: 120x120x3
 
-## Quick Start
+## 🏗️ Advanced Model Architecture
 
-### 1. Clone and Setup
-```bash
-git clone <repository-url>
-cd Slum-Detection-Using-Unet-Architecture
-pip install -r requirements.txt
-```
-
-### 2. Run Dataset Analysis
-```bash
-python quick_analysis.py
-```
-This will generate class distribution plots in the `analysis/` directory.
-
-### 3. Train the Model
-```bash
-python kaggle_slum_detection.py
-```
-
-## Model Architecture
-
-- **U-Net** with encoder-decoder structure
-- **Input:** 128x128x3 RGB images (resized from 120x120)
+- **U-Net++** with EfficientNet-B4 encoder
+- **Input:** 256x256x3 RGB images (upscaled for better accuracy)
 - **Output:** 7-class segmentation masks
-- **Features:**
-  - Batch normalization
-  - Skip connections
-  - Class-weighted loss for imbalanced data
-  - Data augmentation
+- **Advanced Features:**
+  - Pre-trained EfficientNet-B4 backbone
+  - Multi-head attention mechanisms
+  - Deep supervision
+  - Mixed precision training
+  - Advanced data augmentations
+  - Class-weighted Focal + Dice loss
 
-## Training Configuration
+## 🎯 Training Configuration
 
-- **Batch size:** 16
-- **Epochs:** 20
-- **Learning rate:** 1e-3 with ReduceLROnPlateau scheduler
-- **Loss:** CrossEntropyLoss with class weights
-- **Optimizer:** Adam
-- **Augmentations:** Flip, rotation, brightness/contrast
+- **Architecture:** U-Net++ with EfficientNet-B4
+- **Image size:** 256x256 (enhanced resolution)
+- **Batch size:** 8 (optimized for larger images)
+- **Epochs:** 50 (with early stopping)
+- **Learning rate:** 1e-4 with CosineAnnealingWarmRestarts
+- **Loss:** Combined Focal + Dice Loss with class weights
+- **Optimizer:** AdamW with weight decay
+- **Augmentations:** 15+ advanced augmentations including:
+  - Geometric: Flip, rotation, elastic transform, grid distortion
+  - Color: Brightness/contrast, CLAHE, HSV shifts
+  - Noise: Gaussian noise, blur, motion blur
+  - Weather: Random shadow, fog effects
+  - Regularization: Coarse dropout
 
-## Files Structure
+## 📁 Complete File Structure
 
 ```
 ├── data/
@@ -70,46 +89,113 @@ python kaggle_slum_detection.py
 │   ├── val/masks/       # Validation masks
 │   ├── test/images/     # Test images
 │   └── test/masks/      # Test masks
-├── analysis/            # Analysis results and plots
-├── kaggle_slum_detection.py  # Main training script
-├── quick_analysis.py    # Dataset analysis script
-├── requirements.txt     # Dependencies
-└── README.md           # This file
+├── analysis/            # Dataset analysis results
+│   ├── class_analysis.png
+│   ├── sample_images.png
+│   └── class_analysis_results.json
+├── charts/              # Comprehensive analysis charts
+│   ├── dataset_overview.png
+│   ├── model_performance.png
+│   └── training_analysis.png
+├── predictions/         # Model predictions (25+ samples)
+│   ├── prediction_01_*.png
+│   ├── prediction_summary.png
+│   └── predictions_data.json
+├── kaggle_setup.py           # Kaggle setup script
+├── kaggle_complete_pipeline.py  # One-click complete pipeline
+├── advanced_training.py      # Advanced training script
+├── create_charts.py          # Comprehensive chart generation
+├── make_predictions.py       # Advanced prediction generator
+├── quick_analysis.py         # Dataset analysis script
+├── requirements.txt          # Dependencies
+└── README.md                # This file
 ```
 
-## Output Files
+## 📊 Output Files
 
-After training:
-- `best_slum_model.pth` - Best model weights
-- `training_history.png` - Training curves
-- `predictions.png` - Sample predictions
+After running the complete pipeline:
+- `best_advanced_slum_model.pth` - Best model weights
+- `advanced_training_history.png` - Comprehensive training curves
+- `advanced_training_history.json` - Training metrics data
+- `analysis/` - Dataset analysis with class distribution
+- `charts/` - Performance analysis and visualizations
+- `predictions/` - 25+ diverse predictions with analysis
 
-## Key Features
+## 🌟 Key Features
 
-1. **Multi-class segmentation** (7 classes)
-2. **Class-weighted training** for imbalanced data
-3. **Memory efficient** implementation
-4. **Kaggle-ready** - minimal dependencies
-5. **Comprehensive analysis** with visualizations
+1. **Advanced Architecture**: U-Net++ with EfficientNet-B4 backbone
+2. **State-of-the-art Training**: Mixed precision, advanced augmentations
+3. **Comprehensive Analysis**: 7-class multi-class segmentation
+4. **Balanced Training**: Focal + Dice loss with class weights
+5. **Extensive Evaluation**: 25+ diverse predictions with analysis
+6. **Professional Visualizations**: Comprehensive charts and metrics
+7. **Kaggle-Optimized**: One-click deployment and execution
+8. **Production-Ready**: Complete pipeline with error handling
 
-## Usage in Kaggle
+## 🎯 Performance Metrics
 
-1. Upload this repository to Kaggle
-2. Ensure data is in the correct structure
-3. Run `python kaggle_slum_detection.py`
-4. Model will train and save results automatically
+The advanced model tracks:
+- **Pixel-wise accuracy** across all 7 classes
+- **Per-class IoU, F1-score, Precision, Recall**
+- **Confidence analysis** and uncertainty quantification
+- **Class-weighted metrics** for imbalanced data handling
+- **Comprehensive error analysis** by class and region
 
-## Performance Metrics
+## ⚙️ Advanced Configuration
 
-The model tracks:
-- **Pixel-wise accuracy** across all classes
-- **Class-weighted loss** for balanced training
-- **Per-epoch validation** with early stopping capability
+Modify parameters in `advanced_training.py`:
+```python
+CONFIG = {
+    'IMG_SIZE': 256,              # Higher resolution
+    'BATCH_SIZE': 8,              # Optimized for GPU memory
+    'EPOCHS': 50,                 # Extended training
+    'LEARNING_RATE': 1e-4,        # Fine-tuned learning rate
+    'ENCODER': 'efficientnet-b4', # Advanced backbone
+    'USE_MIXED_PRECISION': True,  # Memory optimization
+    'EARLY_STOPPING_PATIENCE': 10,
+    'REDUCE_LR_PATIENCE': 5,
+}
+```
 
-## Customization
+## 🏆 Expected Performance
 
-Modify these parameters in `kaggle_slum_detection.py`:
-- `IMG_SIZE`: Input image size (default: 128)
-- `BATCH_SIZE`: Batch size (default: 16)
-- `EPOCHS`: Number of training epochs (default: 20)
-- `LEARNING_RATE`: Learning rate (default: 1e-3)
+- **Validation Accuracy**: 85-95%+ (depending on data quality)
+- **Training Time**: 1-3 hours on GPU
+- **Memory Usage**: ~8GB GPU memory
+- **Model Size**: ~100MB
+- **Inference Speed**: ~50ms per image
+
+## 📈 What You Get
+
+1. **Trained Model**: State-of-the-art slum detection model
+2. **Comprehensive Analysis**: Dataset statistics and class distribution
+3. **Performance Charts**: Training curves, confusion matrices, metrics
+4. **25+ Predictions**: Diverse samples with confidence analysis
+5. **Production Pipeline**: Ready-to-deploy prediction system
+6. **Documentation**: Complete analysis and performance reports
+
+## 🔧 Troubleshooting
+
+### Common Issues:
+1. **GPU Memory Error**: Reduce `BATCH_SIZE` to 4 or 2
+2. **Package Installation**: Run `!pip install --upgrade pip` first
+3. **Data Not Found**: Ensure data folder structure is correct
+4. **Training Too Slow**: Enable mixed precision training
+
+### Performance Tips:
+1. Use GPU runtime in Kaggle for faster training
+2. Enable internet access for downloading pre-trained weights
+3. Monitor GPU memory usage during training
+4. Use early stopping to prevent overfitting
+
+## 📞 Support
+
+For issues or questions:
+1. Check the generated logs in each output directory
+2. Review the comprehensive analysis charts
+3. Examine the prediction confidence scores
+4. Adjust hyperparameters based on your specific dataset
+
+---
+
+**Ready to detect slums with state-of-the-art accuracy? Run the pipeline now! 🚀**
