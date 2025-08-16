@@ -274,13 +274,23 @@ def main():
         y_true_cat = np.concatenate(y_true_all)
         y_score_cat = np.concatenate(y_score_all)
 
-        plot_roc_pr(out_dir, y_true_cat, y_score_cat)
-        plot_metric_bars(out_dir, names, ious, f1s, accs)
+        # Safe charts that don't require both classes
+        if len(names) > 0:
+            plot_metric_bars(out_dir, names, ious, f1s, accs)
         plot_hists(out_dir, [y_score_cat], ["score"], "Probability Distribution", "probs_hist.png")
         threshold_sweep(out_dir, y_true_cat, y_score_cat)
-        calibration_curve_plot(out_dir, y_true_cat, y_score_cat)
-        y_pred_cat = (y_score_cat >= 0.5).astype(np.uint8)
-        conf_matrix_plot(out_dir, y_true_cat, y_pred_cat)
+
+        # Charts that require at least one positive and one negative in GT
+        has_pos = (y_true_cat.sum() > 0)
+        has_neg = ((y_true_cat == 0).sum() > 0)
+        if has_pos and has_neg:
+            plot_roc_pr(out_dir, y_true_cat, y_score_cat)
+            calibration_curve_plot(out_dir, y_true_cat, y_score_cat)
+            y_pred_cat = (y_score_cat >= 0.5).astype(np.uint8)
+            conf_matrix_plot(out_dir, y_true_cat, y_pred_cat)
+        else:
+            print("[warn] Skipping ROC/PR/Calibration/Confusion charts: GT lacks both classes.")
+
         if len(uncerts) > 0:
             plot_hists(out_dir, [np.array(uncerts)], ["uncertainty"], "Uncertainty (mean per image)", "uncertainty_hist.png")
 
