@@ -29,15 +29,15 @@ class AdvancedPredictor:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
-        # Class information
+        # Class information (mapped to 0-6)
         self.class_names = {
             0: "Background",
-            105: "Slum Type A", 
-            109: "Slum Main Type",
-            111: "Slum Type B",
-            158: "Slum Type C",
-            200: "Slum Type D",
-            233: "Slum Type E"
+            1: "Slum Type A", 
+            2: "Slum Main Type",
+            3: "Slum Type B",
+            4: "Slum Type C",
+            5: "Slum Type D",
+            6: "Slum Type E"
         }
         
         self.class_colors = {
@@ -53,12 +53,19 @@ class AdvancedPredictor:
         # Load model
         self.model, self.device = self.load_model()
         
-        # Setup transforms
+        # Setup transforms with TTA support
         self.transform = A.Compose([
-            A.Resize(256, 256),
+            A.Resize(320, 320),  # Match training resolution
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
+        
+        # Test-time augmentation transforms
+        self.tta_transforms = [
+            A.Compose([A.Resize(320, 320), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(320, 320), A.HorizontalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(320, 320), A.VerticalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+        ]
     
     def load_model(self):
         """Load the trained model"""
@@ -114,16 +121,34 @@ class AdvancedPredictor:
                 mapped_gt[ground_truth == original_val] = new_val
             ground_truth = mapped_gt
         
-        # Preprocess
-        augmented = self.transform(image=image)
-        input_tensor = augmented['image'].unsqueeze(0).to(self.device)
+        # Test-time augmentation for better predictions
+        predictions = []
+        confidences = []
         
-        # Predict
         with torch.no_grad():
-            output = self.model(input_tensor)
-            probabilities = F.softmax(output, dim=1)
-            prediction = output.argmax(dim=1).squeeze().cpu().numpy()
-            confidence = probabilities.max(dim=1)[0].squeeze().cpu().numpy()
+            for tta_transform in self.tta_transforms:
+                augmented = tta_transform(image=image)
+                input_tensor = augmented['image'].unsqueeze(0).to(self.device)
+                
+                output = self.model(input_tensor)
+                probabilities = F.softmax(output, dim=1)
+                pred = output.argmax(dim=1).squeeze().cpu().numpy()
+                conf = probabilities.max(dim=1)[0].squeeze().cpu().numpy()
+                
+                # Reverse augmentation for prediction
+                if 'HorizontalFlip' in str(tta_transform):
+                    pred = np.fliplr(pred)
+                    conf = np.fliplr(conf)
+                elif 'VerticalFlip' in str(tta_transform):
+                    pred = np.flipud(pred)
+                    conf = np.flipud(conf)
+                
+                predictions.append(pred)
+                confidences.append(conf)
+        
+        # Ensemble predictions
+        prediction = np.round(np.mean(predictions, axis=0)).astype(np.uint8)
+        confidence = np.mean(confidences, axis=0)
         
         # Resize prediction back to original size
         prediction_resized = cv2.resize(prediction.astype(np.uint8), 

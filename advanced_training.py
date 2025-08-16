@@ -105,43 +105,36 @@ class AdvancedSlumDataset(Dataset):
         
         return image, torch.tensor(mask, dtype=torch.long)
 
-def get_advanced_transforms(is_train=True, img_size=256):
+def get_advanced_transforms(is_train=True, img_size=320):
     """Advanced augmentation pipeline"""
     if is_train:
         return A.Compose([
             A.Resize(img_size, img_size),
             
-            # Geometric augmentations
+            # Enhanced geometric augmentations
             A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.3),
+            A.VerticalFlip(p=0.4),
             A.RandomRotate90(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=45, p=0.5),
-            A.ElasticTransform(p=0.3),
-            A.GridDistortion(p=0.3),
-            A.OpticalDistortion(p=0.3),
+            A.ShiftScaleRotate(shift_limit=0.08, scale_limit=0.15, rotate_limit=15, p=0.4),
+            A.ElasticTransform(p=0.2),
+            A.GridDistortion(p=0.2),
             
-            # Color augmentations
+            # Enhanced color augmentations
             A.OneOf([
-                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=1.0),
-                A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), p=1.0),
-                A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1.0),
+                A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=1.0),
+                A.CLAHE(clip_limit=3.0, tile_grid_size=(8, 8), p=1.0),
+                A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=15, val_shift_limit=10, p=1.0),
             ], p=0.5),
             
-            # Noise and blur
+            # Controlled noise and blur
             A.OneOf([
-                A.GaussNoise(var_limit=(10.0, 50.0), p=1.0),
+                A.GaussNoise(var_limit=(5.0, 30.0), p=1.0),
                 A.GaussianBlur(blur_limit=3, p=1.0),
                 A.MotionBlur(blur_limit=3, p=1.0),
             ], p=0.3),
             
-            # Weather effects
-            A.OneOf([
-                A.RandomShadow(p=1.0),
-                A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, p=1.0),
-            ], p=0.2),
-            
-            # Cutout for regularization
-            A.CoarseDropout(max_holes=8, max_height=32, max_width=32, p=0.3),
+            # Regularization
+            A.CoarseDropout(max_holes=6, max_height=20, max_width=20, p=0.2),
             
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
@@ -154,33 +147,22 @@ def get_advanced_transforms(is_train=True, img_size=256):
         ])
 
 class AdvancedUNet(nn.Module):
-    """Advanced U-Net with attention mechanisms and deep supervision"""
+    """Advanced U-Net++ with EfficientNet backbone"""
     
     def __init__(self, encoder_name='efficientnet-b4', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
         
+        # Use UNet++ for better feature aggregation
         self.model = smp.UnetPlusPlus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=3,
             classes=num_classes,
-            activation=None,  # We'll apply softmax later
+            activation=None,
         )
-        
-        # Add attention mechanism
-        self.attention = nn.MultiheadAttention(embed_dim=256, num_heads=8, batch_first=True)
-        
-        # Deep supervision heads
-        self.aux_head1 = nn.Conv2d(256, num_classes, 1)
-        self.aux_head2 = nn.Conv2d(128, num_classes, 1)
     
     def forward(self, x):
-        # Main prediction
-        main_out = self.model(x)
-        
-        # For training, return main output
-        # In practice, you could add auxiliary outputs for deep supervision
-        return main_out
+        return self.model(x)
 
 class FocalLoss(nn.Module):
     """Focal Loss for handling class imbalance"""
@@ -190,10 +172,9 @@ class FocalLoss(nn.Module):
         self.alpha = alpha
         self.gamma = gamma
         self.weight = weight
-        self.ce_loss = nn.CrossEntropyLoss(weight=weight, reduction='none')
     
     def forward(self, inputs, targets):
-        ce_loss = self.ce_loss(inputs, targets)
+        ce_loss = F.cross_entropy(inputs, targets, weight=self.weight, reduction='none')
         pt = torch.exp(-ce_loss)
         focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
         return focal_loss.mean()
@@ -216,11 +197,11 @@ class DiceLoss(nn.Module):
         return 1 - dice.mean()
 
 class CombinedLoss(nn.Module):
-    """Combined Focal + Dice Loss"""
+    """Combined Focal + Dice Loss with better weighting"""
     
-    def __init__(self, focal_weight=0.7, dice_weight=0.3, class_weights=None):
+    def __init__(self, focal_weight=0.6, dice_weight=0.4, class_weights=None, gamma=2.0):
         super(CombinedLoss, self).__init__()
-        self.focal_loss = FocalLoss(weight=class_weights)
+        self.focal_loss = FocalLoss(alpha=1, gamma=gamma, weight=class_weights)
         self.dice_loss = DiceLoss()
         self.focal_weight = focal_weight
         self.dice_weight = dice_weight
@@ -341,16 +322,17 @@ def save_training_state(model, optimizer, scheduler, epoch, metrics, filepath):
 def main():
     """Main training function"""
     
-    # Enhanced Configuration
+    # Enhanced Configuration for better accuracy
     CONFIG = {
-        'IMG_SIZE': 256,  # Larger for better accuracy
-        'BATCH_SIZE': 8,  # Smaller due to larger images
-        'EPOCHS': 50,     # More epochs for better convergence
-        'LEARNING_RATE': 1e-4,
-        'ENCODER': 'efficientnet-b4',  # Better encoder
+        'IMG_SIZE': 320,  # Higher resolution for better boundary detection
+        'BATCH_SIZE': 6,  # Adjusted for larger images
+        'EPOCHS': 60,     # More epochs for convergence
+        'LEARNING_RATE': 5e-5,  # Lower LR for stability
+        'ENCODER': 'efficientnet-b4',
         'USE_MIXED_PRECISION': True,
-        'EARLY_STOPPING_PATIENCE': 10,
-        'REDUCE_LR_PATIENCE': 5,
+        'EARLY_STOPPING_PATIENCE': 15,  # More patience
+        'REDUCE_LR_PATIENCE': 7,
+        'FOCAL_GAMMA': 2.5,  # Higher gamma for hard examples
     }
     
     print("🚀 ADVANCED SLUM DETECTION TRAINING")
@@ -403,8 +385,13 @@ def main():
     
     print(f"📊 Class weights: {class_weights}")
     
-    # Advanced loss function
-    criterion = CombinedLoss(class_weights=class_weights)
+    # Advanced loss function with better parameters
+    criterion = CombinedLoss(
+        focal_weight=0.6, 
+        dice_weight=0.4, 
+        class_weights=class_weights,
+        gamma=CONFIG['FOCAL_GAMMA']
+    )
     
     # Advanced optimizer with weight decay
     optimizer = torch.optim.AdamW(model.parameters(), lr=CONFIG['LEARNING_RATE'], 
@@ -454,14 +441,19 @@ def main():
         training_history['val_acc'].append(val_acc)
         training_history['learning_rates'].append(current_lr)
         
+        # Calculate mean IoU for better metric tracking
+        mean_iou = np.mean([m['iou'] for m in val_class_metrics.values()]) if val_class_metrics else 0
+        
         print(f"🏃 Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
-        print(f"🎯 Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        print(f"🎯 Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Mean IoU: {mean_iou:.4f}")
         print(f"📈 Learning Rate: {current_lr:.6f}")
         
-        # Print class-wise metrics for validation
+        # Print class-wise metrics for validation with class names
+        class_names = {0: 'Background', 1: 'Slum-A', 2: 'Slum-Main', 3: 'Slum-B', 4: 'Slum-C', 5: 'Slum-D', 6: 'Slum-E'}
         print("📊 Validation Class Metrics:")
         for class_id, metrics in val_class_metrics.items():
-            print(f"  Class {class_id}: IoU={metrics['iou']:.3f}, F1={metrics['f1']:.3f}")
+            name = class_names.get(class_id, f'Class-{class_id}')
+            print(f"  {name}: IoU={metrics['iou']:.3f}, F1={metrics['f1']:.3f}, Prec={metrics['precision']:.3f}")
         
         # Save best model
         if val_acc > best_val_acc:
