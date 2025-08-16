@@ -1,337 +1,366 @@
 #!/usr/bin/env python3
 """
-Kaggle Slum Detection Pipeline
-=============================
-
-Complete pipeline to clone repository, setup environment, and run slum detection
-model to generate 20 predictions inline in Kaggle notebook.
-
-Usage in Kaggle:
-- Create new notebook
-- Copy this entire script
-- Run in a single cell
+Kaggle-Ready Slum Detection Pipeline
+===================================
+Minimal, clean implementation for multi-class slum detection using U-Net.
+Based on comprehensive dataset analysis showing 7 classes.
 """
 
 import os
-import sys
-import subprocess
+import cv2
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import glob
 from pathlib import Path
-import json
-import warnings
-warnings.filterwarnings('ignore')
 
-# Kaggle working directory
-KAGGLE_DIR = "/kaggle/working"
-REPO_URL = "https://github.com/nichula01/Slum-Detection-Using-Unet-Architecture.git"
-REPO_NAME = "Slum-Detection-Using-Unet-Architecture"
+# Set device and seeds
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+torch.manual_seed(42)
+np.random.seed(42)
 
-def run_command(cmd, cwd=None):
-    """Run shell command and return output."""
-    try:
-        result = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, check=True)
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Error running command: {cmd}")
-        print(f"Error: {e.stderr}")
-        return None
+print(f"Device: {device}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+    torch.cuda.empty_cache()
 
-def setup_kaggle_environment():
-    """Setup Kaggle environment with all dependencies."""
-    print("🚀 Setting up Kaggle environment...")
+class SlumDataset(Dataset):
+    """Dataset for multi-class slum detection"""
     
-    # Change to Kaggle working directory
-    os.chdir(KAGGLE_DIR)
+    def __init__(self, images_dir, masks_dir, transform=None, max_samples=None):
+        self.image_paths = sorted(glob.glob(f"{images_dir}/*.tif"))
+        self.mask_paths = sorted(glob.glob(f"{masks_dir}/*.png"))
+        
+        if max_samples:
+            self.image_paths = self.image_paths[:max_samples]
+            self.mask_paths = self.mask_paths[:max_samples]
+        
+        self.transform = transform
+        print(f"Dataset: {len(self.image_paths)} samples")
     
-    # Clone repository
-    print("📥 Cloning repository...")
-    run_command(f"git clone {REPO_URL}")
+    def __len__(self):
+        return len(self.image_paths)
     
-    # Change to repo directory
-    repo_path = os.path.join(KAGGLE_DIR, REPO_NAME)
-    os.chdir(repo_path)
-    
-    # Install dependencies
-    print("📦 Installing dependencies...")
-    run_command("pip install segmentation-models-pytorch albumentations opencv-python")
-    run_command("pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu")
-    
-    # Add to Python path
-    sys.path.insert(0, repo_path)
-    
-    return repo_path
+    def __getitem__(self, idx):
+        # Load image
+        image = cv2.imread(self.image_paths[idx])
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Load mask
+        mask = cv2.imread(self.mask_paths[idx], cv2.IMREAD_GRAYSCALE)
+        
+        # Apply transforms
+        if self.transform:
+            augmented = self.transform(image=image, mask=mask)
+            image = augmented['image']
+            mask = augmented['mask']
+        
+        return image, mask.long()
 
-def create_sample_data(repo_path):
-    """Create sample satellite images for testing."""
-    print("🖼️ Creating sample satellite images...")
+class UNet(nn.Module):
+    """Simple U-Net for multi-class segmentation"""
     
-    # Create sample images directory
-    sample_dir = os.path.join(repo_path, "kaggle_samples")
-    os.makedirs(sample_dir, exist_ok=True)
+    def __init__(self, in_channels=3, num_classes=7):
+        super(UNet, self).__init__()
+        
+        # Encoder
+        self.enc1 = self.conv_block(in_channels, 64)
+        self.enc2 = self.conv_block(64, 128)
+        self.enc3 = self.conv_block(128, 256)
+        self.enc4 = self.conv_block(256, 512)
+        
+        # Bottleneck
+        self.bottleneck = self.conv_block(512, 1024)
+        
+        # Decoder
+        self.upconv4 = nn.ConvTranspose2d(1024, 512, 2, stride=2)
+        self.dec4 = self.conv_block(1024, 512)
+        
+        self.upconv3 = nn.ConvTranspose2d(512, 256, 2, stride=2)
+        self.dec3 = self.conv_block(512, 256)
+        
+        self.upconv2 = nn.ConvTranspose2d(256, 128, 2, stride=2)
+        self.dec2 = self.conv_block(256, 128)
+        
+        self.upconv1 = nn.ConvTranspose2d(128, 64, 2, stride=2)
+        self.dec1 = self.conv_block(128, 64)
+        
+        # Output
+        self.final = nn.Conv2d(64, num_classes, 1)
+        
+        self.pool = nn.MaxPool2d(2)
     
-    # Generate 20 synthetic satellite-like images
-    sample_images = []
-    for i in range(20):
-        # Create realistic satellite-like image (120x120x3)
-        np.random.seed(42 + i)  # For reproducible results
-        
-        # Base terrain (brownish)
-        image = np.random.normal(0.4, 0.1, (120, 120, 3))
-        
-        # Add some urban structures (darker areas)
-        if i < 10:  # First 10 with potential slums
-            # Add slum-like areas (irregular, dense patterns)
-            slum_x, slum_y = np.random.randint(20, 100, 2)
-            slum_size = np.random.randint(15, 30)
-            
-            # Create irregular slum pattern
-            for dx in range(-slum_size//2, slum_size//2):
-                for dy in range(-slum_size//2, slum_size//2):
-                    if 0 <= slum_x + dx < 120 and 0 <= slum_y + dy < 120:
-                        if np.random.random() > 0.3:  # Irregular pattern
-                            image[slum_x + dx, slum_y + dy] = [0.6, 0.5, 0.3]  # Slum-like color
-        
-        # Add some roads and buildings
-        road_y = np.random.randint(10, 110)
-        image[road_y:road_y+3, :] = [0.2, 0.2, 0.2]  # Road
-        
-        # Normalize to [0, 1]
-        image = np.clip(image, 0, 1)
-        
-        # Convert to uint8
-        image = (image * 255).astype(np.uint8)
-        sample_images.append(image)
-        
-        # Save image
-        from PIL import Image
-        img_pil = Image.fromarray(image)
-        img_pil.save(os.path.join(sample_dir, f"sample_{i:02d}.png"))
+    def conv_block(self, in_ch, out_ch):
+        return nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True)
+        )
     
-    return sample_images, sample_dir
+    def forward(self, x):
+        # Encoder
+        e1 = self.enc1(x)
+        e2 = self.enc2(self.pool(e1))
+        e3 = self.enc3(self.pool(e2))
+        e4 = self.enc4(self.pool(e3))
+        
+        # Bottleneck
+        b = self.bottleneck(self.pool(e4))
+        
+        # Decoder
+        d4 = self.upconv4(b)
+        d4 = torch.cat([d4, e4], dim=1)
+        d4 = self.dec4(d4)
+        
+        d3 = self.upconv3(d4)
+        d3 = torch.cat([d3, e3], dim=1)
+        d3 = self.dec3(d3)
+        
+        d2 = self.upconv2(d3)
+        d2 = torch.cat([d2, e2], dim=1)
+        d2 = self.dec2(d2)
+        
+        d1 = self.upconv1(d2)
+        d1 = torch.cat([d1, e1], dim=1)
+        d1 = self.dec1(d1)
+        
+        return self.final(d1)
 
-def load_model(repo_path):
-    """Load the slum detection model."""
-    print("🧠 Loading slum detection model...")
+def get_transforms(is_train=True, img_size=128):
+    """Get data transforms"""
+    if is_train:
+        return A.Compose([
+            A.Resize(img_size, img_size),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.3),
+            A.RandomRotate90(p=0.5),
+            A.RandomBrightnessContrast(p=0.3),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ])
+    else:
+        return A.Compose([
+            A.Resize(img_size, img_size),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ])
+
+def calculate_class_weights(dataset):
+    """Calculate class weights for balanced training"""
+    class_counts = torch.zeros(7)
     
-    # Import model modules
-    from models.unet import create_model
-    from models.metrics import IoUScore, DiceScore
+    print("Calculating class weights...")
+    for i in tqdm(range(min(len(dataset), 1000))):  # Sample subset for speed
+        _, mask = dataset[i]
+        for class_id in range(7):
+            class_counts[class_id] += (mask == class_id).sum()
     
-    # Create model with balanced configuration
-    model = create_model(
-        architecture="unet",
-        encoder="resnet34",
-        pretrained=True,  # Use ImageNet weights since we don't have trained checkpoint
-        num_classes=1
-    )
+    # Convert to weights (inverse frequency)
+    total_pixels = class_counts.sum()
+    class_weights = total_pixels / (7 * class_counts + 1e-8)
     
-    # Move to appropriate device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model.to(device)
+    print(f"Class weights: {class_weights}")
+    return class_weights
+
+def train_epoch(model, loader, criterion, optimizer, device):
+    """Train for one epoch"""
+    model.train()
+    total_loss = 0
+    correct_pixels = 0
+    total_pixels = 0
+    
+    for images, masks in tqdm(loader, desc="Training"):
+        images, masks = images.to(device), masks.to(device)
+        
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, masks)
+        loss.backward()
+        optimizer.step()
+        
+        total_loss += loss.item()
+        
+        # Calculate accuracy
+        pred = outputs.argmax(dim=1)
+        correct_pixels += (pred == masks).sum().item()
+        total_pixels += masks.numel()
+    
+    avg_loss = total_loss / len(loader)
+    accuracy = correct_pixels / total_pixels
+    
+    return avg_loss, accuracy
+
+def validate_epoch(model, loader, criterion, device):
+    """Validate for one epoch"""
     model.eval()
-    
-    print(f"✅ Model loaded on device: {device}")
-    print(f"📊 Model parameters: {sum(p.numel() for p in model.parameters()):,}")
-    
-    return model, device
-
-def preprocess_image(image):
-    """Preprocess image for model input."""
-    # Convert to float and normalize
-    image = image.astype(np.float32) / 255.0
-    
-    # Apply ImageNet normalization
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    image = (image - mean) / std
-    
-    # Convert to tensor and add batch dimension
-    image = torch.from_numpy(image.transpose(2, 0, 1)).unsqueeze(0)
-    
-    return image
-
-def predict_slums(model, images, device):
-    """Run slum detection on batch of images."""
-    print("🔍 Running slum detection predictions...")
-    
-    predictions = []
-    probabilities = []
+    total_loss = 0
+    correct_pixels = 0
+    total_pixels = 0
     
     with torch.no_grad():
-        for i, image in enumerate(images):
-            # Preprocess
-            input_tensor = preprocess_image(image).to(device)
+        for images, masks in tqdm(loader, desc="Validation"):
+            images, masks = images.to(device), masks.to(device)
+            
+            outputs = model(images)
+            loss = criterion(outputs, masks)
+            
+            total_loss += loss.item()
+            
+            # Calculate accuracy
+            pred = outputs.argmax(dim=1)
+            correct_pixels += (pred == masks).sum().item()
+            total_pixels += masks.numel()
+    
+    avg_loss = total_loss / len(loader)
+    accuracy = correct_pixels / total_pixels
+    
+    return avg_loss, accuracy
+
+def visualize_predictions(model, dataset, device, num_samples=4):
+    """Visualize model predictions"""
+    model.eval()
+    
+    fig, axes = plt.subplots(3, num_samples, figsize=(16, 8))
+    
+    with torch.no_grad():
+        for i in range(num_samples):
+            # Get sample
+            image, mask = dataset[i * 100]  # Sample every 100th image
             
             # Predict
-            output = model(input_tensor)
-            prob = torch.sigmoid(output)
+            image_tensor = image.unsqueeze(0).to(device)
+            pred = model(image_tensor).argmax(dim=1).squeeze().cpu()
             
-            # Convert to numpy
-            prob_np = prob.squeeze().cpu().numpy()
-            pred_binary = (prob_np > 0.5).astype(np.uint8)
+            # Convert image for display
+            img_display = image.permute(1, 2, 0).numpy()
+            img_display = (img_display * [0.229, 0.224, 0.225]) + [0.485, 0.456, 0.406]
+            img_display = np.clip(img_display, 0, 1)
             
-            predictions.append(pred_binary)
-            probabilities.append(prob_np)
+            # Plot
+            axes[0, i].imshow(img_display)
+            axes[0, i].set_title(f'Image {i+1}')
+            axes[0, i].axis('off')
             
-            # Print progress
-            if (i + 1) % 5 == 0:
-                print(f"✅ Processed {i + 1}/20 images")
-    
-    return predictions, probabilities
-
-def visualize_predictions(images, predictions, probabilities, sample_dir):
-    """Create visualization of predictions."""
-    print("📊 Creating prediction visualizations...")
-    
-    # Create figure for all predictions
-    fig, axes = plt.subplots(4, 10, figsize=(25, 10))
-    fig.suptitle('Slum Detection Results - 20 Sample Images', fontsize=16, fontweight='bold')
-    
-    for i in range(20):
-        row = i // 10 * 2  # 0 or 2
-        col = i % 10
-        
-        # Original image
-        axes[row, col].imshow(images[i])
-        axes[row, col].set_title(f'Image {i+1}', fontsize=10)
-        axes[row, col].axis('off')
-        
-        # Prediction overlay
-        axes[row + 1, col].imshow(images[i])
-        
-        # Overlay prediction with transparency
-        slum_mask = predictions[i] > 0
-        if slum_mask.sum() > 0:
-            # Create colored overlay for slum areas
-            overlay = np.zeros((*predictions[i].shape, 3))
-            overlay[slum_mask] = [1, 0, 0]  # Red for slums
-            axes[row + 1, col].imshow(overlay, alpha=0.6)
-        
-        # Calculate stats
-        slum_percentage = (predictions[i].sum() / (120 * 120)) * 100
-        max_prob = probabilities[i].max()
-        avg_prob = probabilities[i].mean()
-        
-        axes[row + 1, col].set_title(
-            f'Slum: {slum_percentage:.1f}%\nMax: {max_prob:.3f}', 
-            fontsize=9
-        )
-        axes[row + 1, col].axis('off')
+            axes[1, i].imshow(mask.numpy(), cmap='tab10', vmin=0, vmax=6)
+            axes[1, i].set_title('Ground Truth')
+            axes[1, i].axis('off')
+            
+            axes[2, i].imshow(pred.numpy(), cmap='tab10', vmin=0, vmax=6)
+            axes[2, i].set_title('Prediction')
+            axes[2, i].axis('off')
     
     plt.tight_layout()
-    plt.savefig(os.path.join(sample_dir, 'predictions_grid.png'), dpi=150, bbox_inches='tight')
+    plt.savefig('predictions.png', dpi=150, bbox_inches='tight')
     plt.show()
-    
-    return fig
-
-def generate_summary_report(predictions, probabilities):
-    """Generate detailed summary report."""
-    print("\n" + "="*60)
-    print("🏆 SLUM DETECTION RESULTS SUMMARY")
-    print("="*60)
-    
-    total_images = len(predictions)
-    slum_detected = sum(1 for pred in predictions if pred.sum() > 0)
-    
-    print(f"📊 Total Images Analyzed: {total_images}")
-    print(f"🏘️  Images with Slums Detected: {slum_detected}")
-    print(f"📈 Slum Detection Rate: {(slum_detected/total_images)*100:.1f}%")
-    
-    print("\n" + "-"*60)
-    print("📋 DETAILED RESULTS:")
-    print("-"*60)
-    
-    for i, (pred, prob) in enumerate(zip(predictions, probabilities)):
-        slum_pixels = pred.sum()
-        slum_percentage = (slum_pixels / (120 * 120)) * 100
-        max_prob = prob.max()
-        avg_prob = prob.mean()
-        
-        status = "🔴 SLUM DETECTED" if slum_pixels > 0 else "🟢 NO SLUM"
-        
-        print(f"Image {i+1:2d}: {status:<15} | "
-              f"Coverage: {slum_percentage:5.1f}% | "
-              f"Max Prob: {max_prob:.3f} | "
-              f"Avg Prob: {avg_prob:.3f}")
-    
-    # Statistics
-    all_slum_percentages = [(pred.sum() / (120 * 120)) * 100 for pred in predictions]
-    all_max_probs = [prob.max() for prob in probabilities]
-    all_avg_probs = [prob.mean() for prob in probabilities]
-    
-    print("\n" + "-"*60)
-    print("📈 STATISTICS:")
-    print("-"*60)
-    print(f"Average Slum Coverage: {np.mean(all_slum_percentages):.2f}%")
-    print(f"Max Slum Coverage: {np.max(all_slum_percentages):.2f}%")
-    print(f"Average Max Probability: {np.mean(all_max_probs):.3f}")
-    print(f"Average Overall Probability: {np.mean(all_avg_probs):.3f}")
-    
-    return {
-        'total_images': total_images,
-        'slum_detected': slum_detected,
-        'detection_rate': (slum_detected/total_images)*100,
-        'avg_slum_coverage': np.mean(all_slum_percentages),
-        'max_slum_coverage': np.max(all_slum_percentages),
-        'avg_max_prob': np.mean(all_max_probs),
-        'avg_overall_prob': np.mean(all_avg_probs)
-    }
 
 def main():
-    """Main execution function."""
-    print("🏘️ KAGGLE SLUM DETECTION PIPELINE")
-    print("="*50)
+    """Main training function"""
     
-    try:
-        # Setup environment
-        repo_path = setup_kaggle_environment()
+    # Configuration
+    IMG_SIZE = 128
+    BATCH_SIZE = 16
+    EPOCHS = 20
+    LEARNING_RATE = 1e-3
+    
+    print("SLUM DETECTION TRAINING")
+    print("=" * 40)
+    print(f"Image size: {IMG_SIZE}x{IMG_SIZE}")
+    print(f"Batch size: {BATCH_SIZE}")
+    print(f"Epochs: {EPOCHS}")
+    
+    # Create datasets
+    train_transform = get_transforms(is_train=True, img_size=IMG_SIZE)
+    val_transform = get_transforms(is_train=False, img_size=IMG_SIZE)
+    
+    train_dataset = SlumDataset('data/train/images', 'data/train/masks', 
+                               transform=train_transform, max_samples=2000)  # Limit for speed
+    val_dataset = SlumDataset('data/val/images', 'data/val/masks', 
+                             transform=val_transform, max_samples=500)
+    
+    # Create data loaders
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    
+    # Create model
+    model = UNet(in_channels=3, num_classes=7).to(device)
+    
+    # Calculate class weights
+    class_weights = calculate_class_weights(train_dataset).to(device)
+    
+    # Loss and optimizer
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)
+    
+    # Training loop
+    best_val_acc = 0
+    train_losses, val_losses = [], []
+    train_accs, val_accs = [], []
+    
+    for epoch in range(EPOCHS):
+        print(f"\\nEpoch {epoch+1}/{EPOCHS}")
+        print("-" * 30)
         
-        # Create sample data
-        sample_images, sample_dir = create_sample_data(repo_path)
+        # Train
+        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         
-        # Load model
-        model, device = load_model(repo_path)
+        # Validate
+        val_loss, val_acc = validate_epoch(model, val_loader, criterion, device)
         
-        # Run predictions
-        predictions, probabilities = predict_slums(model, sample_images, device)
+        # Update scheduler
+        scheduler.step(val_loss)
         
-        # Visualize results
-        visualize_predictions(sample_images, predictions, probabilities, sample_dir)
+        # Save metrics
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        train_accs.append(train_acc)
+        val_accs.append(val_acc)
         
-        # Generate summary
-        summary = generate_summary_report(predictions, probabilities)
+        print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
+        print(f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
         
-        # Save results
-        results = {
-            'summary': summary,
-            'predictions': [pred.tolist() for pred in predictions],
-            'probabilities': [prob.tolist() for prob in probabilities]
-        }
-        
-        with open(os.path.join(sample_dir, 'results.json'), 'w') as f:
-            json.dump(results, f, indent=2)
-        
-        print(f"\n✅ Pipeline completed successfully!")
-        print(f"📁 Results saved in: {sample_dir}")
-        print(f"🔍 Check 'predictions_grid.png' for visual results")
-        
-        return results, sample_dir
-        
-    except Exception as e:
-        print(f"❌ Error in pipeline: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None, None
+        # Save best model
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), 'best_slum_model.pth')
+            print(f"New best model saved! Val Acc: {val_acc:.4f}")
+    
+    # Plot training history
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    
+    ax1.plot(train_losses, label='Train Loss')
+    ax1.plot(val_losses, label='Val Loss')
+    ax1.set_title('Training Loss')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')
+    ax1.legend()
+    
+    ax2.plot(train_accs, label='Train Acc')
+    ax2.plot(val_accs, label='Val Acc')
+    ax2.set_title('Training Accuracy')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Accuracy')
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('training_history.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Load best model and visualize
+    model.load_state_dict(torch.load('best_slum_model.pth'))
+    visualize_predictions(model, val_dataset, device)
+    
+    print(f"\\nTraining complete! Best validation accuracy: {best_val_acc:.4f}")
+    print("Model saved as 'best_slum_model.pth'")
 
 if __name__ == "__main__":
-    # Run the complete pipeline
-    results, output_dir = main()
-    
-    if results:
-        print("\n🎉 KAGGLE SLUM DETECTION COMPLETE!")
-        print("Copy this script to a Kaggle notebook and run to see results.")
-    else:
-        print("\n❌ Pipeline failed. Check error messages above.")
+    main()

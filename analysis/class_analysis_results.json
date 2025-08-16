@@ -1,0 +1,30 @@
+{
+  "total_classes": 7,
+  "class_values": [
+    0,
+    105,
+    109,
+    111,
+    158,
+    200,
+    233
+  ],
+  "class_distribution": {
+    "109": 40922200,
+    "105": 15958561,
+    "111": 24059668,
+    "158": 20327313,
+    "200": 11734194,
+    "233": 15196108,
+    "0": 105956
+  },
+  "class_interpretation": {
+    "0": "Background",
+    "105": "Slum Type A",
+    "109": "Slum Main Type",
+    "111": "Slum Type B",
+    "158": "Slum Type C",
+    "200": "Slum Type D",
+    "233": "Slum Type E"
+  }
+}

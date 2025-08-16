@@ -1,42 +1,115 @@
-# 🏘️ Slum Detection with UNet
+# Slum Detection Using U-Net Architecture
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
-![AUC-ROC](https://img.shields.io/badge/AUC--ROC-99.67%25-brightgreen)
+A clean, minimal implementation for multi-class slum detection using U-Net architecture.
 
-> Semantic segmentation model for detecting slums in 120×120 satellite images using UNet + ResNet34. Achieves 99.67% AUC-ROC with advanced loss functions and strong class imbalance handling.
+## Dataset Analysis Results
 
----
+Based on comprehensive analysis, the dataset contains:
+- **7 classes** with the following distribution:
+  - Class 0: Background (0.08%)
+  - Class 105: Slum Type A (12.44%)
+  - Class 109: Slum Main Type (31.89%) - Most common
+  - Class 111: Slum Type B (18.75%)
+  - Class 158: Slum Type C (15.84%)
+  - Class 200: Slum Type D (9.15%)
+  - Class 233: Slum Type E (11.84%)
 
+- **Dataset splits:**
+  - Train: 7,128 images
+  - Validation: 891 images
+  - Test: 891 images
+  - Image size: 120x120x3
 
----
+## Quick Start
 
-## 📈 Results Overview
-
-**ROC Curve**  
-<img src="images/roc_curve.png" width="500"/>
-
-**Confusion Matrix**  
-<img src="images/confusion_matrix.png" width="500"/>
-
-**Performance Summary**  
-<img src="images/performance_summary.png" width="500"/>
-
-**Threshold Analysis**  
-<img src="images/threshold_analysis.png" width="500"/>
-
----
-
-## 🖼️ Sample Predictions
-
-<img src="images/prediction_samples.png" width="800"/>
-
----
-
-## 🔧 Quick Start
-
+### 1. Clone and Setup
 ```bash
-git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git
-cd Slum-detection-model-using-UNET
+git clone <repository-url>
+cd Slum-Detection-Using-Unet-Architecture
 pip install -r requirements.txt
-python scripts/train.py --model balanced --training development
+```
+
+### 2. Run Dataset Analysis
+```bash
+python quick_analysis.py
+```
+This will generate class distribution plots in the `analysis/` directory.
+
+### 3. Train the Model
+```bash
+python kaggle_slum_detection.py
+```
+
+## Model Architecture
+
+- **U-Net** with encoder-decoder structure
+- **Input:** 128x128x3 RGB images (resized from 120x120)
+- **Output:** 7-class segmentation masks
+- **Features:**
+  - Batch normalization
+  - Skip connections
+  - Class-weighted loss for imbalanced data
+  - Data augmentation
+
+## Training Configuration
+
+- **Batch size:** 16
+- **Epochs:** 20
+- **Learning rate:** 1e-3 with ReduceLROnPlateau scheduler
+- **Loss:** CrossEntropyLoss with class weights
+- **Optimizer:** Adam
+- **Augmentations:** Flip, rotation, brightness/contrast
+
+## Files Structure
+
+```
+├── data/
+│   ├── train/images/    # Training images (.tif)
+│   ├── train/masks/     # Training masks (.png)
+│   ├── val/images/      # Validation images
+│   ├── val/masks/       # Validation masks
+│   ├── test/images/     # Test images
+│   └── test/masks/      # Test masks
+├── analysis/            # Analysis results and plots
+├── kaggle_slum_detection.py  # Main training script
+├── quick_analysis.py    # Dataset analysis script
+├── requirements.txt     # Dependencies
+└── README.md           # This file
+```
+
+## Output Files
+
+After training:
+- `best_slum_model.pth` - Best model weights
+- `training_history.png` - Training curves
+- `predictions.png` - Sample predictions
+
+## Key Features
+
+1. **Multi-class segmentation** (7 classes)
+2. **Class-weighted training** for imbalanced data
+3. **Memory efficient** implementation
+4. **Kaggle-ready** - minimal dependencies
+5. **Comprehensive analysis** with visualizations
+
+## Usage in Kaggle
+
+1. Upload this repository to Kaggle
+2. Ensure data is in the correct structure
+3. Run `python kaggle_slum_detection.py`
+4. Model will train and save results automatically
+
+## Performance Metrics
+
+The model tracks:
+- **Pixel-wise accuracy** across all classes
+- **Class-weighted loss** for balanced training
+- **Per-epoch validation** with early stopping capability
+
+## Customization
+
+Modify these parameters in `kaggle_slum_detection.py`:
+- `IMG_SIZE`: Input image size (default: 128)
+- `BATCH_SIZE`: Batch size (default: 16)
+- `EPOCHS`: Number of training epochs (default: 20)
+- `LEARNING_RATE`: Learning rate (default: 1e-3)
