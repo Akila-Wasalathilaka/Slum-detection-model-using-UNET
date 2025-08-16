@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 """
-DEPRECATED: This Colab trainer has been removed.
-Use scripts/train.py for training.
+Backward-compat wrapper for legacy notebooks.
+Delegates to the unified trainer: scripts/train.py
+
+Usage:
+    python colab_train.py --model upscale --training upscale --data upscale
+    # Any args are forwarded to scripts/train.py
 """
 
+import sys
+import subprocess
+
+
 def main():
-    raise RuntimeError(
-        "colab_train.py is deprecated. Use scripts/train.py instead."
-    )
+        args = sys.argv[1:]
+        cmd = [sys.executable, "scripts/train.py", *args]
+        print("[compat] Delegating to:", " ".join(cmd))
+        subprocess.run(cmd, check=True)
+
 
 if __name__ == "__main__":
-    main()
+        main()
