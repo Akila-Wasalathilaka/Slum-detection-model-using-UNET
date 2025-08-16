@@ -16,14 +16,14 @@ from typing import Optional, Dict, Any
 class SlumUNet(nn.Module):
     """
     Advanced UNet for slum detection with multiple encoder options.
-    
+
     Features:
     - Multiple encoder backbones (ResNet, EfficientNet, etc.)
     - Attention mechanisms
     - Multi-scale features
     - Custom decoder with skip connections
     """
-    
+
     def __init__(
         self,
         encoder_name: str = "resnet34",
@@ -35,7 +35,7 @@ class SlumUNet(nn.Module):
         aux_params: Optional[Dict[str, Any]] = None
     ):
         super(SlumUNet, self).__init__()
-        
+
         self.model = smp.Unet(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
@@ -44,16 +44,16 @@ class SlumUNet(nn.Module):
             activation=activation,
             aux_params=aux_params
         )
-        
+
         # Add attention if specified
         if attention_type == "scse":
             self._add_attention_blocks()
-    
+
     def _add_attention_blocks(self):
         """Add Spatial and Channel Squeeze & Excitation attention."""
         # Implementation would go here for advanced attention
         pass
-    
+
     def forward(self, x):
         return self.model(x)
 
@@ -63,7 +63,7 @@ class UNetPlusPlus(nn.Module):
     UNet++ (Nested UNet) for improved feature representation.
     Better handling of objects at different scales.
     """
-    
+
     def __init__(
         self,
         encoder_name: str = "efficientnet-b0",
@@ -73,7 +73,7 @@ class UNetPlusPlus(nn.Module):
         activation: Optional[str] = None
     ):
         super(UNetPlusPlus, self).__init__()
-        
+
         self.model = smp.UnetPlusPlus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
@@ -81,7 +81,7 @@ class UNetPlusPlus(nn.Module):
             classes=classes,
             activation=activation
         )
-    
+
     def forward(self, x):
         return self.model(x)
 
@@ -91,7 +91,7 @@ class DeepLabV3Plus(nn.Module):
     DeepLabV3+ for slum detection with atrous convolutions.
     Good for capturing multi-scale context.
     """
-    
+
     def __init__(
         self,
         encoder_name: str = "resnet50",
@@ -101,7 +101,7 @@ class DeepLabV3Plus(nn.Module):
         activation: Optional[str] = None
     ):
         super(DeepLabV3Plus, self).__init__()
-        
+
         self.model = smp.DeepLabV3Plus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
@@ -109,7 +109,7 @@ class DeepLabV3Plus(nn.Module):
             classes=classes,
             activation=activation
         )
-    
+
     def forward(self, x):
         return self.model(x)
 
@@ -119,28 +119,30 @@ def create_model(
     encoder: str = "resnet34",
     pretrained: bool = True,
     num_classes: int = 1,
+    in_channels: int = 3,
     **kwargs
 ) -> nn.Module:
     """
     Factory function to create models with different architectures.
-    
+
     Args:
         architecture: Model architecture ('unet', 'unet++', 'deeplabv3+')
         encoder: Encoder backbone ('resnet34', 'efficientnet-b0', etc.)
         pretrained: Whether to use ImageNet pretrained weights
         num_classes: Number of output classes (1 for binary slum detection)
         **kwargs: Additional model parameters
-    
+
     Returns:
         PyTorch model ready for training
     """
-    
+
     encoder_weights = "imagenet" if pretrained else None
-    
+
     if architecture.lower() == "unet":
         return SlumUNet(
             encoder_name=encoder,
             encoder_weights=encoder_weights,
+            in_channels=in_channels,
             classes=num_classes,
             **kwargs
         )
@@ -148,6 +150,7 @@ def create_model(
         return UNetPlusPlus(
             encoder_name=encoder,
             encoder_weights=encoder_weights,
+            in_channels=in_channels,
             classes=num_classes,
             **kwargs
         )
@@ -155,6 +158,7 @@ def create_model(
         return DeepLabV3Plus(
             encoder_name=encoder,
             encoder_weights=encoder_weights,
+            in_channels=in_channels,
             classes=num_classes,
             **kwargs
         )
@@ -228,11 +232,11 @@ if __name__ == "__main__":
     # Test model creation
     model = create_model("unet", "resnet34", pretrained=True)
     print(f"Model created: {model.__class__.__name__}")
-    
+
     # Test forward pass
     x = torch.randn(1, 3, 120, 120)
     with torch.no_grad():
         output = model(x)
     print(f"Output shape: {output.shape}")
-    
+
     get_model_info()

@@ -35,14 +35,17 @@ class SlumDataset(Dataset):
         self,
         images_dir: str,
         masks_dir: str,
-        transform: Optional[Callable] = None,
-        slum_rgb: Tuple[int, int, int] = (250, 235, 185),
+    transform: Optional[Callable] = None,
+    slum_rgb: Tuple[int, int, int] = (250, 235, 185),
         image_size: Tuple[int, int] = (120, 120),
         use_tile_masks_only: bool = True,
         min_slum_pixels: int = 0,
         max_slum_percentage: float = 1.0,
         min_slum_percentage: float = 0.0,
-        cache_masks: bool = True
+    cache_masks: bool = True,
+    # Multiclass options
+    mode: str = "binary",
+    class_rgb_map: Optional[Dict[str, Tuple[int, int, int]]] = None,
     ):
         """
         Initialize slum detection dataset.
@@ -69,6 +72,15 @@ class SlumDataset(Dataset):
         self.max_slum_percentage = max_slum_percentage
         self.min_slum_percentage = min_slum_percentage
         self.cache_masks = cache_masks
+        # Multiclass settings
+        self.mode = mode.lower()
+        self.class_rgb_map = class_rgb_map or {}
+        # Ensure background class exists if multiclass
+        if self.mode == "multiclass" and 'background' not in self.class_rgb_map:
+            # Default to black background
+            self.class_rgb_map = {'background': (0, 0, 0), **self.class_rgb_map}
+        self.classes = list(self.class_rgb_map.keys()) if self.mode == "multiclass" else ['background', 'slum']
+        self.num_classes = len(self.classes) if self.mode == "multiclass" else 1
 
         # Initialize data structures
         self.image_paths = []
@@ -188,6 +200,36 @@ class SlumDataset(Dataset):
 
         return slum_mask
 
+    def _load_multiclass_mask(self, mask_path: str) -> np.ndarray:
+        """Load RGB mask and convert to integer class indices for multiclass."""
+        # Check cache (keyed by path + mode)
+        cache_key = (mask_path, 'mc')
+        if self.cache_masks and self.cached_masks is not None and cache_key in self.cached_masks:
+            return self.cached_masks[cache_key]
+
+        mask = cv2.imread(mask_path)
+        if mask is None:
+            raise ValueError(f"Could not load mask: {mask_path}")
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+
+        h, w = mask.shape[:2]
+        class_mask = np.zeros((h, w), dtype=np.uint8)  # default background index 0
+
+        # Vectorized matching per class
+        for idx, cls in enumerate(self.classes):
+            if cls == 'background':
+                continue
+            rgb = self.class_rgb_map.get(cls, None)
+            if rgb is None:
+                continue
+            match = np.all(mask == np.array(rgb, dtype=np.uint8).reshape(1, 1, 3), axis=-1)
+            class_mask[match] = idx
+
+        if self.cache_masks and self.cached_masks is not None:
+            self.cached_masks[cache_key] = class_mask
+
+        return class_mask
+
     def _load_image(self, image_path: str) -> np.ndarray:
         """Load and preprocess image."""
         # Try different loading methods
@@ -215,30 +257,51 @@ class SlumDataset(Dataset):
         """Get image and mask pair."""
         # Load image and mask
         image = self._load_image(self.image_paths[idx])
-        mask = self._load_binary_mask(self.mask_paths[idx])
+        if self.mode == "multiclass":
+            mask = self._load_multiclass_mask(self.mask_paths[idx])
+        else:
+            mask = self._load_binary_mask(self.mask_paths[idx])
 
         # Ensure mask is correct size
         if mask.shape != self.image_size:
-            mask = cv2.resize(mask, (self.image_size[1], self.image_size[0]))
+            interp = cv2.INTER_NEAREST if self.mode == "multiclass" else cv2.INTER_LINEAR
+            mask = cv2.resize(mask, (self.image_size[1], self.image_size[0]), interpolation=interp)
         # Apply transforms if provided
         if self.transform:
             transformed = self.transform(image=image, mask=mask)
             image = transformed['image']
             mask = transformed['mask']
-            # Ensure mask has channel dimension (1, H, W)
+            # Ensure mask shape/dtype: binary -> (1,H,W) float; multiclass -> (H,W) long
             if isinstance(mask, torch.Tensor):
-                if mask.ndim == 2:
-                    mask = mask.unsqueeze(0)
+                if self.mode == "multiclass":
+                    # ToTensorV2 may give shape (H,W). Ensure long for CE
+                    if mask.ndim == 3 and mask.shape[0] == 1:
+                        mask = mask.squeeze(0)
+                    mask = mask.long()
+                else:
+                    if mask.ndim == 2:
+                        mask = mask.unsqueeze(0)
+                    mask = mask.float()
             else:
-                if mask.ndim == 2:
-                    mask = np.expand_dims(mask, 0)
+                if self.mode == "multiclass":
+                    # Keep as (H,W) and convert to tensor below
+                    pass
+                else:
+                    if mask.ndim == 2:
+                        mask = np.expand_dims(mask, 0)
         else:
             # Convert to tensors manually
             image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
-            mask = torch.from_numpy(mask).float().unsqueeze(0)
+            if self.mode == "multiclass":
+                mask = torch.from_numpy(mask).long()
+            else:
+                mask = torch.from_numpy(mask).float().unsqueeze(0)
 
-        # Ensure mask is float and in correct range [0, 1]
-        mask = mask.float()
+        # Ensure mask dtype final
+        if self.mode == "multiclass":
+            mask = mask.long()
+        else:
+            mask = mask.float()
 
         return image, mask
 
@@ -258,21 +321,48 @@ class SlumDataset(Dataset):
         print(f"  Max slum percentage: {np.max(slum_percentages):.2%}")
         print()
 
-    def get_class_weights(self) -> Dict[str, float]:
-        """Calculate class weights for handling imbalance."""
-        if not self.slum_stats:
-            return {'pos_weight': 1.0}
+    def get_class_weights(self) -> Dict[str, float | List[float]]:
+        """Calculate class weights for handling imbalance.
 
-        total_pixels = sum(s['total_pixels'] for s in self.slum_stats.values())
-        total_slum_pixels = sum(s['slum_pixels'] for s in self.slum_stats.values())
-        total_non_slum_pixels = total_pixels - total_slum_pixels
-
-        if total_slum_pixels == 0:
-            pos_weight = 1.0
+        Returns:
+            - Binary mode: {'pos_weight': float}
+            - Multiclass: {'ce_weights': List[float]} to be used with CrossEntropyLoss
+        """
+        if self.mode == "multiclass":
+            # Estimate class frequencies by scanning cached masks or loading a subset
+            counts = np.zeros(self.num_classes, dtype=np.float64)
+            total = 0
+            for mask_path in self.mask_paths:
+                mc = self._load_multiclass_mask(mask_path)
+                # resize if needed to consistent size for fair counts
+                if mc.shape != self.image_size:
+                    mc = cv2.resize(mc, (self.image_size[1], self.image_size[0]), interpolation=cv2.INTER_NEAREST)
+                # bincount up to num_classes
+                bc = np.bincount(mc.flatten(), minlength=self.num_classes)
+                counts += bc
+                total += mc.size
+            freqs = counts / max(total, 1)
+            # Inverse frequency weights (avoid zero)
+            weights = (1.0 / (freqs + 1e-6)).tolist()
+            # Normalize weights roughly
+            s = sum(weights)
+            if s > 0:
+                weights = [w * (self.num_classes / s) for w in weights]
+            return {'ce_weights': weights}
         else:
-            pos_weight = total_non_slum_pixels / total_slum_pixels
+            if not self.slum_stats:
+                return {'pos_weight': 1.0}
 
-        return {'pos_weight': pos_weight}
+            total_pixels = sum(s['total_pixels'] for s in self.slum_stats.values())
+            total_slum_pixels = sum(s['slum_pixels'] for s in self.slum_stats.values())
+            total_non_slum_pixels = total_pixels - total_slum_pixels
+
+            if total_slum_pixels == 0:
+                pos_weight = 1.0
+            else:
+                pos_weight = total_non_slum_pixels / total_slum_pixels
+
+            return {'pos_weight': pos_weight}
 
     def get_sample_weights(self) -> List[float]:
         """Get sample weights for weighted sampling."""
