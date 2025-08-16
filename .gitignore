@@ -195,7 +195,7 @@ charts/analysis_*/
 # Jupyter notebook outputs
 *.ipynb
 
-# Large files
+
 *.bin
 *.dat
 *.db

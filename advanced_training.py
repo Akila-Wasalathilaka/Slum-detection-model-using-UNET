@@ -89,13 +89,21 @@ class AdvancedSlumDataset(Dataset):
         # Load mask
         mask = cv2.imread(self.mask_paths[idx], cv2.IMREAD_GRAYSCALE)
         
+        # Map class values to 0-6 range
+        class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
+        mapped_mask = np.zeros_like(mask)
+        for original_val, new_val in class_mapping.items():
+            mapped_mask[mask == original_val] = new_val
+        
         # Apply transforms
         if self.transform:
-            augmented = self.transform(image=image, mask=mask)
+            augmented = self.transform(image=image, mask=mapped_mask)
             image = augmented['image']
             mask = augmented['mask']
+        else:
+            mask = mapped_mask
         
-        return image, mask.long()
+        return image, torch.tensor(mask, dtype=torch.long)
 
 def get_advanced_transforms(is_train=True, img_size=256):
     """Advanced augmentation pipeline"""
@@ -224,8 +232,8 @@ class CombinedLoss(nn.Module):
 
 def calculate_metrics(pred, target, num_classes=7):
     """Calculate comprehensive metrics"""
-    pred = pred.cpu().numpy()
-    target = target.cpu().numpy()
+    pred = pred.cpu().numpy().flatten()
+    target = target.cpu().numpy().flatten()
     
     # Overall accuracy
     accuracy = (pred == target).mean()
@@ -243,13 +251,13 @@ def calculate_metrics(pred, target, num_classes=7):
             iou = (pred_class & target_class).sum() / ((pred_class | target_class).sum() + 1e-8)
             
             class_metrics[class_id] = {
-                'precision': precision,
-                'recall': recall,
-                'f1': f1,
-                'iou': iou
+                'precision': float(precision),
+                'recall': float(recall),
+                'f1': float(f1),
+                'iou': float(iou)
             }
     
-    return accuracy, class_metrics
+    return float(accuracy), class_metrics
 
 def train_epoch(model, loader, criterion, optimizer, device, scaler=None):
     """Advanced training epoch with mixed precision"""
@@ -377,15 +385,20 @@ def main():
     # Calculate class weights from a sample of the dataset
     print("🔍 Calculating class weights...")
     class_counts = torch.zeros(7)
-    sample_size = min(1000, len(train_dataset))
+    sample_size = min(500, len(train_dataset))  # Reduced sample size
     
     for i in tqdm(range(sample_size), desc="Sampling for weights"):
         _, mask = train_dataset[i]
         for class_id in range(7):
             class_counts[class_id] += (mask == class_id).sum()
     
+    # Add small epsilon to avoid division by zero
+    class_counts = class_counts + 1e-6
     total_pixels = class_counts.sum()
-    class_weights = total_pixels / (7 * class_counts + 1e-8)
+    class_weights = total_pixels / (7 * class_counts)
+    
+    # Normalize weights to prevent extreme values
+    class_weights = torch.clamp(class_weights, min=0.1, max=10.0)
     class_weights = class_weights.to(device)
     
     print(f"📊 Class weights: {class_weights}")

@@ -107,6 +107,12 @@ class AdvancedPredictor:
         ground_truth = None
         if mask_path and os.path.exists(mask_path):
             ground_truth = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+            # Map ground truth classes to 0-6 range
+            class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
+            mapped_gt = np.zeros_like(ground_truth)
+            for original_val, new_val in class_mapping.items():
+                mapped_gt[ground_truth == original_val] = new_val
+            ground_truth = mapped_gt
         
         # Preprocess
         augmented = self.transform(image=image)
