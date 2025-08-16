@@ -1,0 +1,711 @@
+{
+  "processing_timestamp": "2025-07-14T02:14:55.248663",
+  "total_tiles": 50,
+  "tile_size": [
+    120,
+    120
+  ],
+  "overlap": 0,
+  "tiles": [
+    {
+      "tile_id": 0,
+      "x_start": 0,
+      "y_start": 0,
+      "x_end": 120,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0000.png",
+      "filename": "colombo_tile_0000.png"
+    },
+    {
+      "tile_id": 1,
+      "x_start": 120,
+      "y_start": 0,
+      "x_end": 240,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0001.png",
+      "filename": "colombo_tile_0001.png"
+    },
+    {
+      "tile_id": 2,
+      "x_start": 240,
+      "y_start": 0,
+      "x_end": 360,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0002.png",
+      "filename": "colombo_tile_0002.png"
+    },
+    {
+      "tile_id": 3,
+      "x_start": 360,
+      "y_start": 0,
+      "x_end": 480,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0003.png",
+      "filename": "colombo_tile_0003.png"
+    },
+    {
+      "tile_id": 4,
+      "x_start": 480,
+      "y_start": 0,
+      "x_end": 600,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0004.png",
+      "filename": "colombo_tile_0004.png"
+    },
+    {
+      "tile_id": 5,
+      "x_start": 600,
+      "y_start": 0,
+      "x_end": 720,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0005.png",
+      "filename": "colombo_tile_0005.png"
+    },
+    {
+      "tile_id": 6,
+      "x_start": 720,
+      "y_start": 0,
+      "x_end": 840,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0006.png",
+      "filename": "colombo_tile_0006.png"
+    },
+    {
+      "tile_id": 7,
+      "x_start": 840,
+      "y_start": 0,
+      "x_end": 960,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0007.png",
+      "filename": "colombo_tile_0007.png"
+    },
+    {
+      "tile_id": 8,
+      "x_start": 960,
+      "y_start": 0,
+      "x_end": 1080,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0008.png",
+      "filename": "colombo_tile_0008.png"
+    },
+    {
+      "tile_id": 9,
+      "x_start": 1080,
+      "y_start": 0,
+      "x_end": 1200,
+      "y_end": 120,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0009.png",
+      "filename": "colombo_tile_0009.png"
+    },
+    {
+      "tile_id": 10,
+      "x_start": 0,
+      "y_start": 120,
+      "x_end": 120,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0010.png",
+      "filename": "colombo_tile_0010.png"
+    },
+    {
+      "tile_id": 11,
+      "x_start": 120,
+      "y_start": 120,
+      "x_end": 240,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0011.png",
+      "filename": "colombo_tile_0011.png"
+    },
+    {
+      "tile_id": 12,
+      "x_start": 240,
+      "y_start": 120,
+      "x_end": 360,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0012.png",
+      "filename": "colombo_tile_0012.png"
+    },
+    {
+      "tile_id": 13,
+      "x_start": 360,
+      "y_start": 120,
+      "x_end": 480,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0013.png",
+      "filename": "colombo_tile_0013.png"
+    },
+    {
+      "tile_id": 14,
+      "x_start": 480,
+      "y_start": 120,
+      "x_end": 600,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0014.png",
+      "filename": "colombo_tile_0014.png"
+    },
+    {
+      "tile_id": 15,
+      "x_start": 600,
+      "y_start": 120,
+      "x_end": 720,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0015.png",
+      "filename": "colombo_tile_0015.png"
+    },
+    {
+      "tile_id": 16,
+      "x_start": 720,
+      "y_start": 120,
+      "x_end": 840,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0016.png",
+      "filename": "colombo_tile_0016.png"
+    },
+    {
+      "tile_id": 17,
+      "x_start": 840,
+      "y_start": 120,
+      "x_end": 960,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0017.png",
+      "filename": "colombo_tile_0017.png"
+    },
+    {
+      "tile_id": 18,
+      "x_start": 960,
+      "y_start": 120,
+      "x_end": 1080,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0018.png",
+      "filename": "colombo_tile_0018.png"
+    },
+    {
+      "tile_id": 19,
+      "x_start": 1080,
+      "y_start": 120,
+      "x_end": 1200,
+      "y_end": 240,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0019.png",
+      "filename": "colombo_tile_0019.png"
+    },
+    {
+      "tile_id": 20,
+      "x_start": 0,
+      "y_start": 240,
+      "x_end": 120,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0020.png",
+      "filename": "colombo_tile_0020.png"
+    },
+    {
+      "tile_id": 21,
+      "x_start": 120,
+      "y_start": 240,
+      "x_end": 240,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0021.png",
+      "filename": "colombo_tile_0021.png"
+    },
+    {
+      "tile_id": 22,
+      "x_start": 240,
+      "y_start": 240,
+      "x_end": 360,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0022.png",
+      "filename": "colombo_tile_0022.png"
+    },
+    {
+      "tile_id": 23,
+      "x_start": 360,
+      "y_start": 240,
+      "x_end": 480,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0023.png",
+      "filename": "colombo_tile_0023.png"
+    },
+    {
+      "tile_id": 24,
+      "x_start": 480,
+      "y_start": 240,
+      "x_end": 600,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0024.png",
+      "filename": "colombo_tile_0024.png"
+    },
+    {
+      "tile_id": 25,
+      "x_start": 600,
+      "y_start": 240,
+      "x_end": 720,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0025.png",
+      "filename": "colombo_tile_0025.png"
+    },
+    {
+      "tile_id": 26,
+      "x_start": 720,
+      "y_start": 240,
+      "x_end": 840,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0026.png",
+      "filename": "colombo_tile_0026.png"
+    },
+    {
+      "tile_id": 27,
+      "x_start": 840,
+      "y_start": 240,
+      "x_end": 960,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0027.png",
+      "filename": "colombo_tile_0027.png"
+    },
+    {
+      "tile_id": 28,
+      "x_start": 960,
+      "y_start": 240,
+      "x_end": 1080,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0028.png",
+      "filename": "colombo_tile_0028.png"
+    },
+    {
+      "tile_id": 29,
+      "x_start": 1080,
+      "y_start": 240,
+      "x_end": 1200,
+      "y_end": 360,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0029.png",
+      "filename": "colombo_tile_0029.png"
+    },
+    {
+      "tile_id": 30,
+      "x_start": 0,
+      "y_start": 360,
+      "x_end": 120,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0030.png",
+      "filename": "colombo_tile_0030.png"
+    },
+    {
+      "tile_id": 31,
+      "x_start": 120,
+      "y_start": 360,
+      "x_end": 240,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0031.png",
+      "filename": "colombo_tile_0031.png"
+    },
+    {
+      "tile_id": 32,
+      "x_start": 240,
+      "y_start": 360,
+      "x_end": 360,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0032.png",
+      "filename": "colombo_tile_0032.png"
+    },
+    {
+      "tile_id": 33,
+      "x_start": 360,
+      "y_start": 360,
+      "x_end": 480,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0033.png",
+      "filename": "colombo_tile_0033.png"
+    },
+    {
+      "tile_id": 34,
+      "x_start": 480,
+      "y_start": 360,
+      "x_end": 600,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0034.png",
+      "filename": "colombo_tile_0034.png"
+    },
+    {
+      "tile_id": 35,
+      "x_start": 600,
+      "y_start": 360,
+      "x_end": 720,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0035.png",
+      "filename": "colombo_tile_0035.png"
+    },
+    {
+      "tile_id": 36,
+      "x_start": 720,
+      "y_start": 360,
+      "x_end": 840,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0036.png",
+      "filename": "colombo_tile_0036.png"
+    },
+    {
+      "tile_id": 37,
+      "x_start": 840,
+      "y_start": 360,
+      "x_end": 960,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0037.png",
+      "filename": "colombo_tile_0037.png"
+    },
+    {
+      "tile_id": 38,
+      "x_start": 960,
+      "y_start": 360,
+      "x_end": 1080,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0038.png",
+      "filename": "colombo_tile_0038.png"
+    },
+    {
+      "tile_id": 39,
+      "x_start": 1080,
+      "y_start": 360,
+      "x_end": 1200,
+      "y_end": 480,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0039.png",
+      "filename": "colombo_tile_0039.png"
+    },
+    {
+      "tile_id": 40,
+      "x_start": 0,
+      "y_start": 480,
+      "x_end": 120,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0040.png",
+      "filename": "colombo_tile_0040.png"
+    },
+    {
+      "tile_id": 41,
+      "x_start": 120,
+      "y_start": 480,
+      "x_end": 240,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0041.png",
+      "filename": "colombo_tile_0041.png"
+    },
+    {
+      "tile_id": 42,
+      "x_start": 240,
+      "y_start": 480,
+      "x_end": 360,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0042.png",
+      "filename": "colombo_tile_0042.png"
+    },
+    {
+      "tile_id": 43,
+      "x_start": 360,
+      "y_start": 480,
+      "x_end": 480,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0043.png",
+      "filename": "colombo_tile_0043.png"
+    },
+    {
+      "tile_id": 44,
+      "x_start": 480,
+      "y_start": 480,
+      "x_end": 600,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0044.png",
+      "filename": "colombo_tile_0044.png"
+    },
+    {
+      "tile_id": 45,
+      "x_start": 600,
+      "y_start": 480,
+      "x_end": 720,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0045.png",
+      "filename": "colombo_tile_0045.png"
+    },
+    {
+      "tile_id": 46,
+      "x_start": 720,
+      "y_start": 480,
+      "x_end": 840,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0046.png",
+      "filename": "colombo_tile_0046.png"
+    },
+    {
+      "tile_id": 47,
+      "x_start": 840,
+      "y_start": 480,
+      "x_end": 960,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0047.png",
+      "filename": "colombo_tile_0047.png"
+    },
+    {
+      "tile_id": 48,
+      "x_start": 960,
+      "y_start": 480,
+      "x_end": 1080,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0048.png",
+      "filename": "colombo_tile_0048.png"
+    },
+    {
+      "tile_id": 49,
+      "x_start": 1080,
+      "y_start": 480,
+      "x_end": 1200,
+      "y_end": 600,
+      "tile_shape": [
+        120,
+        120,
+        3
+      ],
+      "file_path": "tiles\\colombo_tile_0049.png",
+      "filename": "colombo_tile_0049.png"
+    }
+  ]
+}

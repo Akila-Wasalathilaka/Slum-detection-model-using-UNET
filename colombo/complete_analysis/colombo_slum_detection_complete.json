@@ -1,0 +1,535 @@
+{
+  "timestamp": "2025-07-14T09:28:46.291598",
+  "model_info": {
+    "checkpoint": "../experiments/development_20250713_175410/checkpoints/best_checkpoint.pth",
+    "architecture": "unet",
+    "encoder": "resnet34",
+    "device": "cpu"
+  },
+  "overall_statistics": {
+    "total_tiles": 50,
+    "slum_tiles": 0,
+    "non_slum_tiles": 50,
+    "slum_detection_rate": 0.0,
+    "average_probability": 0.01764834117144346,
+    "max_probability": 0.08489007502794266,
+    "average_slum_coverage": 0.00125,
+    "confidence_distribution": {
+      "low": 0,
+      "medium": 0,
+      "high": 50
+    }
+  },
+  "tile_predictions": [
+    {
+      "tile_id": 0,
+      "tile_name": "colombo_tile_0000",
+      "classification": "non-slum",
+      "avg_probability": 0.012776426039636135,
+      "max_probability": 0.11928229033946991,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 1,
+      "tile_name": "colombo_tile_0001",
+      "classification": "non-slum",
+      "avg_probability": 0.01014276035130024,
+      "max_probability": 0.10614852607250214,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 2,
+      "tile_name": "colombo_tile_0002",
+      "classification": "non-slum",
+      "avg_probability": 0.011561463586986065,
+      "max_probability": 0.1149573102593422,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 3,
+      "tile_name": "colombo_tile_0003",
+      "classification": "non-slum",
+      "avg_probability": 0.016454363241791725,
+      "max_probability": 0.146330326795578,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 4,
+      "tile_name": "colombo_tile_0004",
+      "classification": "non-slum",
+      "avg_probability": 0.01443663239479065,
+      "max_probability": 0.10308525711297989,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 5,
+      "tile_name": "colombo_tile_0005",
+      "classification": "non-slum",
+      "avg_probability": 0.010048135183751583,
+      "max_probability": 0.11435212939977646,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 6,
+      "tile_name": "colombo_tile_0006",
+      "classification": "non-slum",
+      "avg_probability": 0.010094339959323406,
+      "max_probability": 0.11421801894903183,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 7,
+      "tile_name": "colombo_tile_0007",
+      "classification": "non-slum",
+      "avg_probability": 0.010045711882412434,
+      "max_probability": 0.10660727322101593,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 8,
+      "tile_name": "colombo_tile_0008",
+      "classification": "non-slum",
+      "avg_probability": 0.012434999458491802,
+      "max_probability": 0.11358765512704849,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 9,
+      "tile_name": "colombo_tile_0009",
+      "classification": "non-slum",
+      "avg_probability": 0.020135438069701195,
+      "max_probability": 0.1535690873861313,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 10,
+      "tile_name": "colombo_tile_0010",
+      "classification": "non-slum",
+      "avg_probability": 0.01146749034523964,
+      "max_probability": 0.1132563054561615,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 11,
+      "tile_name": "colombo_tile_0011",
+      "classification": "non-slum",
+      "avg_probability": 0.015213891863822937,
+      "max_probability": 0.1098799854516983,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 12,
+      "tile_name": "colombo_tile_0012",
+      "classification": "non-slum",
+      "avg_probability": 0.016430513933300972,
+      "max_probability": 0.12440722435712814,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 13,
+      "tile_name": "colombo_tile_0013",
+      "classification": "non-slum",
+      "avg_probability": 0.025679651647806168,
+      "max_probability": 0.13635870814323425,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 14,
+      "tile_name": "colombo_tile_0014",
+      "classification": "non-slum",
+      "avg_probability": 0.04745347797870636,
+      "max_probability": 0.18851637840270996,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 15,
+      "tile_name": "colombo_tile_0015",
+      "classification": "non-slum",
+      "avg_probability": 0.03741135820746422,
+      "max_probability": 0.16290558874607086,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 16,
+      "tile_name": "colombo_tile_0016",
+      "classification": "non-slum",
+      "avg_probability": 0.01617441512644291,
+      "max_probability": 0.21861228346824646,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 17,
+      "tile_name": "colombo_tile_0017",
+      "classification": "non-slum",
+      "avg_probability": 0.011750975623726845,
+      "max_probability": 0.10199856758117676,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 18,
+      "tile_name": "colombo_tile_0018",
+      "classification": "non-slum",
+      "avg_probability": 0.010153946466743946,
+      "max_probability": 0.11075660586357117,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 19,
+      "tile_name": "colombo_tile_0019",
+      "classification": "non-slum",
+      "avg_probability": 0.011908499523997307,
+      "max_probability": 0.10785883665084839,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 20,
+      "tile_name": "colombo_tile_0020",
+      "classification": "non-slum",
+      "avg_probability": 0.011718904599547386,
+      "max_probability": 0.1175924614071846,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 21,
+      "tile_name": "colombo_tile_0021",
+      "classification": "non-slum",
+      "avg_probability": 0.01275867223739624,
+      "max_probability": 0.10300585627555847,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 22,
+      "tile_name": "colombo_tile_0022",
+      "classification": "non-slum",
+      "avg_probability": 0.012779545970261097,
+      "max_probability": 0.10702364891767502,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 23,
+      "tile_name": "colombo_tile_0023",
+      "classification": "non-slum",
+      "avg_probability": 0.08489007502794266,
+      "max_probability": 0.5355669260025024,
+      "slum_percentage": 0.0625,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 24,
+      "tile_name": "colombo_tile_0024",
+      "classification": "non-slum",
+      "avg_probability": 0.0823533907532692,
+      "max_probability": 0.3776981830596924,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 25,
+      "tile_name": "colombo_tile_0025",
+      "classification": "non-slum",
+      "avg_probability": 0.0305021945387125,
+      "max_probability": 0.2601383328437805,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 26,
+      "tile_name": "colombo_tile_0026",
+      "classification": "non-slum",
+      "avg_probability": 0.013082192279398441,
+      "max_probability": 0.13093793392181396,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 27,
+      "tile_name": "colombo_tile_0027",
+      "classification": "non-slum",
+      "avg_probability": 0.009897350333631039,
+      "max_probability": 0.11480992287397385,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 28,
+      "tile_name": "colombo_tile_0028",
+      "classification": "non-slum",
+      "avg_probability": 0.011733951978385448,
+      "max_probability": 0.15523166954517365,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 29,
+      "tile_name": "colombo_tile_0029",
+      "classification": "non-slum",
+      "avg_probability": 0.010013663209974766,
+      "max_probability": 0.11287286132574081,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 30,
+      "tile_name": "colombo_tile_0030",
+      "classification": "non-slum",
+      "avg_probability": 0.00980672612786293,
+      "max_probability": 0.10371292382478714,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 31,
+      "tile_name": "colombo_tile_0031",
+      "classification": "non-slum",
+      "avg_probability": 0.013807118870317936,
+      "max_probability": 0.15621893107891083,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 32,
+      "tile_name": "colombo_tile_0032",
+      "classification": "non-slum",
+      "avg_probability": 0.014427151530981064,
+      "max_probability": 0.10240475088357925,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 33,
+      "tile_name": "colombo_tile_0033",
+      "classification": "non-slum",
+      "avg_probability": 0.012475399300456047,
+      "max_probability": 0.10978837311267853,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 34,
+      "tile_name": "colombo_tile_0034",
+      "classification": "non-slum",
+      "avg_probability": 0.03740476444363594,
+      "max_probability": 0.3474818468093872,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 35,
+      "tile_name": "colombo_tile_0035",
+      "classification": "non-slum",
+      "avg_probability": 0.01083588507026434,
+      "max_probability": 0.10665635764598846,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 36,
+      "tile_name": "colombo_tile_0036",
+      "classification": "non-slum",
+      "avg_probability": 0.00994001142680645,
+      "max_probability": 0.10418156534433365,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 37,
+      "tile_name": "colombo_tile_0037",
+      "classification": "non-slum",
+      "avg_probability": 0.011754489503800869,
+      "max_probability": 0.16214288771152496,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 38,
+      "tile_name": "colombo_tile_0038",
+      "classification": "non-slum",
+      "avg_probability": 0.009947464801371098,
+      "max_probability": 0.11649401485919952,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 39,
+      "tile_name": "colombo_tile_0039",
+      "classification": "non-slum",
+      "avg_probability": 0.01006318163126707,
+      "max_probability": 0.10916194319725037,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 40,
+      "tile_name": "colombo_tile_0040",
+      "classification": "non-slum",
+      "avg_probability": 0.01758560910820961,
+      "max_probability": 0.13612480461597443,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 41,
+      "tile_name": "colombo_tile_0041",
+      "classification": "non-slum",
+      "avg_probability": 0.011503951624035835,
+      "max_probability": 0.10072434693574905,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 42,
+      "tile_name": "colombo_tile_0042",
+      "classification": "non-slum",
+      "avg_probability": 0.015260194428265095,
+      "max_probability": 0.1008634865283966,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 43,
+      "tile_name": "colombo_tile_0043",
+      "classification": "non-slum",
+      "avg_probability": 0.016856461763381958,
+      "max_probability": 0.1258254498243332,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 44,
+      "tile_name": "colombo_tile_0044",
+      "classification": "non-slum",
+      "avg_probability": 0.014227909967303276,
+      "max_probability": 0.12274150550365448,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 45,
+      "tile_name": "colombo_tile_0045",
+      "classification": "non-slum",
+      "avg_probability": 0.009974525310099125,
+      "max_probability": 0.11659831553697586,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 46,
+      "tile_name": "colombo_tile_0046",
+      "classification": "non-slum",
+      "avg_probability": 0.009906291961669922,
+      "max_probability": 0.111646369099617,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 47,
+      "tile_name": "colombo_tile_0047",
+      "classification": "non-slum",
+      "avg_probability": 0.010261425748467445,
+      "max_probability": 0.11945559829473495,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 48,
+      "tile_name": "colombo_tile_0048",
+      "classification": "non-slum",
+      "avg_probability": 0.011996468529105186,
+      "max_probability": 0.10878811776638031,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    },
+    {
+      "tile_id": 49,
+      "tile_name": "colombo_tile_0049",
+      "classification": "non-slum",
+      "avg_probability": 0.012877595610916615,
+      "max_probability": 0.11058323830366135,
+      "slum_percentage": 0.0,
+      "confidence": "high"
+    }
+  ],
+  "visualization_files": [
+    "complete_analysis\\red_overlays\\tile_0000_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0001_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0002_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0003_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0004_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0005_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0006_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0007_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0008_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0009_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0010_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0011_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0012_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0013_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0014_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0015_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0016_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0017_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0018_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0019_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0020_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0021_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0022_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0023_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0024_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0025_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0026_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0027_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0028_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0029_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0030_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0031_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0032_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0033_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0034_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0035_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0036_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0037_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0038_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0039_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0040_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0041_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0042_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0043_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0044_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0045_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0046_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0047_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0048_overlay.png",
+    "complete_analysis\\red_overlays\\tile_0049_overlay.png",
+    "complete_analysis\\all_tiles_grid_overlay.png",
+    "complete_analysis\\detection_summary.png"
+  ],
+  "methodology": {
+    "preprocessing": "ImageNet normalization with test-time transforms",
+    "threshold": 0.5,
+    "overlay_transparency": 0.4,
+    "red_channel_intensity": 255
+  }
+}

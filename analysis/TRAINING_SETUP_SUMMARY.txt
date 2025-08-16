@@ -1,0 +1,55 @@
+
+SLUM DETECTION MODEL TRAINING SETUP
+===================================
+
+Dataset Overview:
+- Task: Binary semantic segmentation (Slum vs Non-slum)
+- Input: 120x120 RGB satellite image tiles
+- Target: Binary masks (1=Slum, 0=Non-slum)
+- Slum class RGB in original masks: (250, 235, 185)
+
+Model Architecture:
+- UNet with ResNet34 or EfficientNet-B0 encoder
+- Binary classification output (sigmoid activation)
+
+Data Augmentation:
+- Horizontal/vertical flips
+- 90-degree rotations
+- Brightness/contrast adjustments
+- Elastic transformations
+- Grid distortions
+- Gaussian noise
+
+Loss Functions (to compare):
+- Binary Cross-Entropy (BCE)
+- BCE + Dice Loss
+- Focal Loss
+- Tversky Loss
+
+Evaluation Metrics:
+- IoU (Intersection over Union)
+- Dice Score
+- Precision, Recall, F1-score
+- Pixel Accuracy
+
+Training Configuration:
+- Batch size: 16-32
+- Learning rate: 1e-4 with ReduceLROnPlateau
+- Early stopping on validation IoU
+- 100 epochs maximum
+
+Files Ready:
+- unet_slum_detection.py - Model and data pipeline
+- train_model.py - Training script
+- test_model.py - Evaluation script
+- requirements.txt - Dependencies
+
+Next Steps:
+1. Run: python train_model.py
+2. Monitor training progress
+3. Evaluate on test set: python test_model.py
+4. Use best model for inference
+
+Class Mapping Confirmed:
+- RGB (250, 235, 185) = Informal Settlements (Slums) → Binary 1
+- All other RGB values = Non-slum → Binary 0

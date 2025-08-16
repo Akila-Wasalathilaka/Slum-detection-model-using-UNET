@@ -17,7 +17,7 @@ class DataConfig:
     """
     Configuration class for data processing and augmentation.
     """
-
+    
     # Dataset Paths
     data_root: str = "data"
     train_images_dir: str = "train/images"
@@ -26,68 +26,63 @@ class DataConfig:
     val_masks_dir: str = "val/masks"
     test_images_dir: str = "test/images"
     test_masks_dir: str = "test/masks"
-
+    
     # Image Properties
-    image_size: Tuple[int, int] = (128, 128)  # Height, Width
+    image_size: Tuple[int, int] = (120, 120)  # Height, Width
     input_channels: int = 3  # RGB
-    output_channels: int = 1  # Binary mask (ignored for multiclass)
-    # Segmentation mode: 'binary' or 'multiclass'
-    mode: str = "binary"
-    # Class color mapping for multiclass masks (RGB). Ensure these match your dataset exactly.
-    # Example: {"background": (0,0,0), "slum": (250,235,185), "water": (0,0,255)}
-    class_rgb_map: Optional[Dict[str, Tuple[int, int, int]]] = None
-
+    output_channels: int = 1  # Binary mask
+    
     # Class Mapping (RGB to Binary)
     slum_rgb: Tuple[int, int, int] = (250, 235, 185)  # Slum class RGB
     background_value: int = 0   # Non-slum pixels
     slum_value: int = 1        # Slum pixels
-
+    
     # Data Loading
     batch_size: int = 16
     num_workers: int = 4
     pin_memory: bool = True
     shuffle_train: bool = True
     drop_last: bool = True
-
+    
     # Data Splits
     train_split: float = 0.8
     val_split: float = 0.1
     test_split: float = 0.1
-
+    
     # Preprocessing
     normalize: bool = True
     mean: Tuple[float, float, float] = (0.485, 0.456, 0.406)  # ImageNet stats
     std: Tuple[float, float, float] = (0.229, 0.224, 0.225)
-
+    
     # Data Filtering
     min_slum_pixels: int = 0      # Minimum slum pixels to include image
     max_slum_percentage: float = 1.0  # Maximum slum percentage
     min_slum_percentage: float = 0.0  # Minimum slum percentage
     use_tile_masks_only: bool = True  # Use only tile_* masks (contain slums)
-
+    
     # Augmentation Parameters
     use_augmentation: bool = True
     augmentation_probability: float = 0.8
-
+    
     # Geometric Augmentations
     horizontal_flip: bool = True
     vertical_flip: bool = True
     rotation_limit: int = 45
     shift_limit: float = 0.1
     scale_limit: float = 0.1
-
+    
     # Color Augmentations
     brightness_limit: float = 0.2
     contrast_limit: float = 0.2
     saturation_limit: float = 0.2
     hue_shift_limit: int = 20
-
+    
     # Noise and Blur
     gaussian_noise: bool = True
     gaussian_noise_limit: Tuple[float, float] = (0.0, 0.05)
     gaussian_blur: bool = True
     blur_limit: Tuple[int, int] = (3, 5)
-
+    
     # Advanced Augmentations
     elastic_transform: bool = True
     elastic_alpha: float = 120
@@ -95,18 +90,18 @@ class DataConfig:
     grid_distortion: bool = True
     grid_num_steps: int = 5
     grid_distort_limit: float = 0.3
-
+    
     # Cutout/CoarseDropout
     cutout: bool = True
     cutout_holes: int = 8
     cutout_size: Tuple[int, int] = (8, 8)
-
+    
     # Test Time Augmentation
     use_tta: bool = False
     tta_transforms: List[str] = field(default_factory=lambda: [
         "original", "hflip", "vflip", "rotate90"
     ])
-
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
@@ -120,8 +115,6 @@ class DataConfig:
             'image_size': self.image_size,
             'input_channels': self.input_channels,
             'output_channels': self.output_channels,
-            'mode': self.mode,
-            'class_rgb_map': self.class_rgb_map,
             'slum_rgb': self.slum_rgb,
             'background_value': self.background_value,
             'slum_value': self.slum_value,
@@ -167,25 +160,25 @@ class DataConfig:
             'use_tta': self.use_tta,
             'tta_transforms': self.tta_transforms
         }
-
+    
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'DataConfig':
         """Create config from dictionary."""
         return cls(**config_dict)
-
+    
     def save(self, filepath: str):
         """Save configuration to JSON file."""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2)
-
+    
     @classmethod
     def load(cls, filepath: str) -> 'DataConfig':
         """Load configuration from JSON file."""
         with open(filepath, 'r') as f:
             config_dict = json.load(f)
         return cls.from_dict(config_dict)
-
+    
     def get_paths(self) -> Dict[str, str]:
         """Get full paths for all data directories."""
         return {
@@ -207,7 +200,7 @@ PRESET_DATA_CONFIGS = {
         min_slum_pixels=100,  # Only images with some slums
         use_tile_masks_only=True
     ),
-
+    
     "light_augmentation": DataConfig(
         batch_size=16,
         use_augmentation=True,
@@ -222,7 +215,7 @@ PRESET_DATA_CONFIGS = {
         cutout=False,
         use_tile_masks_only=True
     ),
-
+    
     "standard": DataConfig(
         batch_size=16,
         use_augmentation=True,
@@ -237,7 +230,7 @@ PRESET_DATA_CONFIGS = {
         cutout=True,
         use_tile_masks_only=True
     ),
-
+    
     "heavy_augmentation": DataConfig(
         batch_size=16,
         use_augmentation=True,
@@ -259,7 +252,7 @@ PRESET_DATA_CONFIGS = {
         cutout_holes=12,
         use_tile_masks_only=True
     ),
-
+    
     "production": DataConfig(
         batch_size=32,
         use_augmentation=True,
@@ -269,60 +262,31 @@ PRESET_DATA_CONFIGS = {
         tta_transforms=["original", "hflip", "vflip", "rotate90", "rotate180"],
         use_tile_masks_only=True
     ),
-
-    "upscale": DataConfig(
-        batch_size=4,
-        use_augmentation=True,
-        augmentation_probability=0.8,
-        image_size=(512, 512),
-        num_workers=8,
-        gaussian_blur=True,
-        elastic_transform=True,
-        grid_distortion=True,
-        cutout=True,
-        cutout_holes=12,
-        use_tile_masks_only=True
-    ),
-
+    
     "all_data": DataConfig(
         batch_size=16,
         use_augmentation=True,
         augmentation_probability=0.8,
         use_tile_masks_only=False,  # Include all masks
         min_slum_pixels=0
-    ),
-
-    # Multiclass example preset (adjust RGBs to your dataset)
-    "multiclass_water": DataConfig(
-        batch_size=16,
-        use_augmentation=True,
-        augmentation_probability=0.8,
-        use_tile_masks_only=True,
-        mode="multiclass",
-        # IMPORTANT: Replace these with exact RGB values from your mask files
-        class_rgb_map={
-            "background": (0, 0, 0),
-            "slum": (250, 235, 185),
-            "water": (0, 0, 255)
-        }
-    ),
+    )
 }
 
 
 def get_data_config(preset: str = "standard") -> DataConfig:
     """
     Get a predefined data configuration.
-
+    
     Args:
         preset: Configuration preset name
-
+    
     Returns:
         DataConfig instance
     """
     if preset not in PRESET_DATA_CONFIGS:
         available = list(PRESET_DATA_CONFIGS.keys())
         raise ValueError(f"Unknown preset '{preset}'. Available: {available}")
-
+    
     return PRESET_DATA_CONFIGS[preset]
 
 
@@ -357,7 +321,7 @@ def print_data_config_info():
     """Print information about available data configurations."""
     print("📊 DATA CONFIGURATION OPTIONS")
     print("=" * 50)
-
+    
     print("\n📋 Available Presets:")
     for name, config in PRESET_DATA_CONFIGS.items():
         print(f"  {name.upper()}:")
@@ -368,14 +332,14 @@ def print_data_config_info():
         print(f"    Tile Masks Only: {config.use_tile_masks_only}")
         print(f"    Workers: {config.num_workers}")
         print()
-
+    
     print("🔄 Augmentation Categories:")
     aug_info = get_augmentation_info()
     for category, info in aug_info.items():
         print(f"  {category.upper()}: {info['description']}")
         print(f"    Transforms: {', '.join(info['transforms'])}")
     print()
-
+    
     print("🎯 Class Mapping:")
     config = get_data_config("standard")
     print(f"  Slum RGB: {config.slum_rgb}")
@@ -386,24 +350,24 @@ def print_data_config_info():
 if __name__ == "__main__":
     # Test configuration
     print("Testing Data Configuration...")
-
+    
     # Create and test config
     config = get_data_config("standard")
     print(f"Loaded config with batch size: {config.batch_size}")
     print(f"Augmentation enabled: {config.use_augmentation}")
-
+    
     # Test paths
     paths = config.get_paths()
     print(f"Train images path: {paths['train_images']}")
-
+    
     # Test save/load
     config.save("test_data_config.json")
     loaded_config = DataConfig.load("test_data_config.json")
     print(f"Saved and loaded successfully: {loaded_config.image_size}")
-
+    
     # Clean up
     if os.path.exists("test_data_config.json"):
         os.remove("test_data_config.json")
-
+    
     print("\n")
     print_data_config_info()

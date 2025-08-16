@@ -132,7 +132,7 @@ dmypy.json
 *.safetensors
 
 # Datasets (uncomment if you don't want to track data)
-data/
+# data/
 # *.csv
 # *.json
 # *.txt
@@ -192,8 +192,8 @@ charts/analysis_*/
 !best_model.pth
 !best_checkpoint.pth
 
-# Jupyter notebooks: keep tracked; outputs stripped via pre-commit nbstripout
-# (checkpoints already ignored above)
+# Jupyter notebook outputs
+*.ipynb
 
 # Large files
 *.bin
