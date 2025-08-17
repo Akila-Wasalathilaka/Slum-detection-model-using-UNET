@@ -76,7 +76,7 @@ analysis_config = {
     'project_name': 'SlumSeg_Analysis',
     
     'data': {
-        'root': '/kaggle/input/slum-detection-dataset',  # UPDATE THIS!
+        'root': '/kaggle/input/data',
         'images_dir': 'images',
         'masks_dir': 'masks',
         'tile_size': 512,

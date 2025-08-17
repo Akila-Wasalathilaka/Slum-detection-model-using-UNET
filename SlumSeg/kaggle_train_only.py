@@ -75,7 +75,7 @@ training_config = {
     'project_name': 'SlumSeg_Kaggle',
     
     'data': {
-        'root': '/kaggle/input/slum-detection-dataset',  # UPDATE THIS!
+        'root': '/kaggle/input/data',
         'images_dir': 'images',
         'masks_dir': 'masks',
         'tile_size': 512,
@@ -171,8 +171,17 @@ for dir_path in output_dirs:
 print("\n🔍 Quick Dataset Verification")
 print("=" * 30)
 
-dataset_path = Path(training_config['data']['root'])
-if dataset_path.exists():
+# Check for dataset in multiple possible locations
+dataset_paths = ['/kaggle/input/data', '/kaggle/input/slum-detection-using-unet-architecture/data', '../data']
+dataset_path = None
+
+for path in dataset_paths:
+    if Path(path).exists():
+        dataset_path = Path(path)
+        training_config['data']['root'] = str(path)
+        break
+
+if dataset_path:
     print(f"✅ Dataset found: {dataset_path}")
     
     # Check structure
@@ -189,9 +198,12 @@ if dataset_path.exists():
         else:
             print(f"⚠️  {split}: not found")
 else:
-    print(f"❌ Dataset not found: {dataset_path}")
-    print("🔧 Please update the dataset path in the config above")
-    raise FileNotFoundError(f"Dataset not found: {dataset_path}")
+    print(f"❌ Dataset not found in any of: {dataset_paths}")
+    print("🔧 Available input datasets:")
+    import os
+    for item in os.listdir('/kaggle/input'):
+        print(f"   📁 /kaggle/input/{item}")
+    raise FileNotFoundError(f"Dataset not found in: {dataset_paths}")
 
 # =============================================================================
 # CELL 5: Data Preprocessing
