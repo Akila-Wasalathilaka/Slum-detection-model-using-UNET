@@ -372,34 +372,50 @@ def verify_dataset_setup(data_config) -> bool:
     
     print("🔍 Verifying dataset setup...")
     
-    all_valid = True
+    # Define which splits are required vs optional
+    required_splits = {
+        'train_images', 'train_masks',
+        'val_images', 'val_masks'
+    }
+    optional_splits = {
+        'test_images', 'test_masks'
+    }
+
+    all_required_valid = True
     for split, path in paths.items():
+        is_required = split in required_splits
         if not os.path.exists(path):
-            print(f"❌ Missing directory: {path}")
-            all_valid = False
+            prefix = "❌" if is_required else "⚠️"
+            print(f"{prefix} Missing directory: {path}")
+            if is_required:
+                all_required_valid = False
+            continue
+
+        # Count files
+        if 'images' in split:
+            extensions = ['*.tif', '*.png', '*.jpg', '*.jpeg']
         else:
-            # Count files
-            if 'images' in split:
-                extensions = ['*.tif', '*.png', '*.jpg', '*.jpeg']
-            else:
-                extensions = ['*.png', '*.tif']
-            
-            file_count = 0
-            for ext in extensions:
-                file_count += len(glob.glob(os.path.join(path, ext)))
-            
-            if file_count == 0:
-                print(f"⚠️  Empty directory: {path}")
-                all_valid = False
-            else:
-                print(f"✅ {split}: {file_count} files")
-    
-    if all_valid:
+            # Accept PNG/TIF/JPG for masks to be robust across datasets
+            extensions = ['*.png', '*.tif', '*.jpg', '*.jpeg']
+
+        file_count = 0
+        for ext in extensions:
+            file_count += len(glob.glob(os.path.join(path, ext)))
+
+        if file_count == 0:
+            prefix = "❌" if is_required else "⚠️"
+            print(f"{prefix} Empty directory: {path}")
+            if is_required:
+                all_required_valid = False
+        else:
+            print(f"✅ {split}: {file_count} files")
+
+    if all_required_valid:
         print("✅ Dataset setup verified successfully!")
     else:
         print("❌ Dataset setup has issues!")
-    
-    return all_valid
+
+    return all_required_valid
 
 
 if __name__ == "__main__":

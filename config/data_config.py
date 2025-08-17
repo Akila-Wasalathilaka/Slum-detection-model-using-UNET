@@ -181,14 +181,66 @@ class DataConfig:
     
     def get_paths(self) -> Dict[str, str]:
         """Get full paths for all data directories."""
-        return {
-            'train_images': os.path.join(self.data_root, self.train_images_dir),
-            'train_masks': os.path.join(self.data_root, self.train_masks_dir),
-            'val_images': os.path.join(self.data_root, self.val_images_dir),
-            'val_masks': os.path.join(self.data_root, self.val_masks_dir),
-            'test_images': os.path.join(self.data_root, self.test_images_dir),
-            'test_masks': os.path.join(self.data_root, self.test_masks_dir)
+        # Helper: prefer the first existing candidate, else fall back to the first option
+        def _first_existing(base: str, candidates: List[str]) -> str:
+            for rel in candidates:
+                p = os.path.join(base, rel)
+                if os.path.exists(p):
+                    return p
+            return os.path.join(base, candidates[0])
+
+        # Resolve data root; auto-detect Kaggle input if default root not present
+        resolved_root = self.data_root
+        if not os.path.exists(resolved_root):
+            kaggle_input = "/kaggle/input"
+            try:
+                if os.path.exists(kaggle_input):
+                    # Search common Kaggle dataset structures
+                    for d in os.listdir(kaggle_input):
+                        cand = os.path.join(kaggle_input, d)
+                        # Prefer a nested 'data' folder if present
+                        if os.path.exists(os.path.join(cand, "data", "train")):
+                            resolved_root = os.path.join(cand, "data")
+                            break
+                        # Or directly with train/val/test at the root
+                        if os.path.exists(os.path.join(cand, "train")):
+                            resolved_root = cand
+                            break
+            except Exception:
+                # Keep original root if detection fails
+                pass
+
+        # Prepare candidates for each split
+        def _images_candidates(split: str, attr_value: str) -> List[str]:
+            return [
+                attr_value,
+                f"{split}/images",
+                f"{split}/image",
+                f"{split}/imgs",
+                f"{split}/Images"
+            ]
+
+        def _masks_candidates(split: str, attr_value: str) -> List[str]:
+            return [
+                attr_value,
+                f"{split}/masks",
+                f"{split}/mask",
+                f"{split}/labels",
+                f"{split}/label",
+                f"{split}/annotations",
+                f"{split}/Masks"
+            ]
+
+        paths = {
+            'train_images': _first_existing(resolved_root, _images_candidates('train', self.train_images_dir)),
+            'train_masks': _first_existing(resolved_root, _masks_candidates('train', self.train_masks_dir)),
+            'val_images': _first_existing(resolved_root, _images_candidates('val', self.val_images_dir)),
+            'val_masks': _first_existing(resolved_root, _masks_candidates('val', self.val_masks_dir)),
+            'test_images': _first_existing(resolved_root, _images_candidates('test', self.test_images_dir)),
+            'test_masks': _first_existing(resolved_root, _masks_candidates('test', self.test_masks_dir)),
         }
+
+        return paths
 
 
 # Predefined data configurations

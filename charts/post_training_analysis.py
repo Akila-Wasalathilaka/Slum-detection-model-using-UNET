@@ -251,7 +251,9 @@ def main():
     
     parser.add_argument('--checkpoint', type=str, 
                        help='Path to model checkpoint (auto-detected if not provided)')
-    parser.add_argument('--analysis-type', choices=['quick', 'comprehensive'], 
+    # Accept both kebab-case and underscore variants for compatibility
+    parser.add_argument('--analysis-type', '--analysis_type', dest='analysis_type',
+                       choices=['quick', 'comprehensive'], 
                        default='quick', help='Type of analysis to run')
     parser.add_argument('--output-dir', default='charts',
                        help='Output directory for analysis results')

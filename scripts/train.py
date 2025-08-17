@@ -554,8 +554,9 @@ def main():
             )
             
             # Generate predictions on test set
-            test_images_dir = data_config.data_root / "test" / "images"
-            if test_images_dir.exists():
+            import os as _os
+            test_images_dir = _os.path.join(data_config.data_root, "test", "images")
+            if Path(test_images_dir).exists():
                 batch_results = detector.predict_batch(
                     image_dir=str(test_images_dir),
                     output_dir=str(advanced_dir),
