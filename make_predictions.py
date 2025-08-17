@@ -212,6 +212,12 @@ class AdvancedPredictor:
         confidence_resized = cv2.resize(confidence, 
                                        (original_size[1], original_size[0]))
         
+        # Resize ground truth to match prediction if needed
+        if ground_truth is not None and ground_truth.shape != prediction_resized.shape:
+            ground_truth = cv2.resize(ground_truth, 
+                                    (original_size[1], original_size[0]), 
+                                    interpolation=cv2.INTER_NEAREST)
+        
         return {
             'image': image,
             'prediction': prediction_resized,
@@ -264,22 +270,24 @@ class AdvancedPredictor:
         
         # Calculate accuracy if ground truth available
         if ground_truth is not None:
-            # Resize ground truth to match prediction
+            # Ensure shapes match
             if ground_truth.shape != prediction.shape:
                 ground_truth = cv2.resize(ground_truth, 
                                         (prediction.shape[1], prediction.shape[0]), 
                                         interpolation=cv2.INTER_NEAREST)
             
-            accuracy = np.mean(prediction == ground_truth)
-            analysis['accuracy'] = float(accuracy)
-            
-            # Per-class accuracy
-            analysis['class_accuracy'] = {}
-            for class_id in np.unique(ground_truth):
-                mask = ground_truth == class_id
-                if mask.sum() > 0:
-                    class_acc = np.mean(prediction[mask] == class_id)
-                    analysis['class_accuracy'][int(class_id)] = float(class_acc)
+            # Only calculate if shapes are compatible
+            if ground_truth.shape == prediction.shape:
+                accuracy = np.mean(prediction == ground_truth)
+                analysis['accuracy'] = float(accuracy)
+                
+                # Per-class accuracy
+                analysis['class_accuracy'] = {}
+                for class_id in np.unique(ground_truth):
+                    mask = ground_truth == class_id
+                    if mask.sum() > 0:
+                        class_acc = np.mean(prediction[mask] == class_id)
+                        analysis['class_accuracy'][int(class_id)] = float(class_acc)
         
         return analysis
     
