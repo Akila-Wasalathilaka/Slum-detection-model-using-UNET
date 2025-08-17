@@ -83,7 +83,7 @@ class AdvancedSlumDataset(Dataset):
         
         return image, torch.tensor(mask, dtype=torch.long)
 
-def get_advanced_transforms(is_train=True, img_size=256):
+def get_advanced_transforms(is_train=True, img_size=224):
     """Speed-optimized augmentation pipeline"""
     if is_train:
         return A.Compose([
@@ -163,15 +163,19 @@ class AdvancedUNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
     
     def forward(self, x):
+        # Clone input to avoid CUDA graph issues
+        x = x.clone()
         base_output = self.backbone(x)
         refined = self.feature_refine(base_output)
         
-        # Efficient water suppression
+        # Efficient water suppression with cloning
         water_mask = self.water_detector(refined)
         
-        # Vectorized water suppression
-        final_output = refined * (1 - water_mask * 0.5)
-        final_output[:, 0:1] = refined[:, 0:1]  # Keep background unchanged
+        # Safe tensor operations
+        final_output = refined.clone()
+        suppression = (1 - water_mask * 0.5)
+        final_output = final_output * suppression
+        final_output[:, 0:1] = refined[:, 0:1].clone()  # Keep background unchanged
         
         return final_output
 
@@ -282,7 +286,9 @@ def train_epoch(model, loader, criterion, optimizer, device, scaler=None, accumu
     optimizer.zero_grad()
     
     for batch_idx, (images, masks) in enumerate(tqdm(loader, desc="Training")):
-        images, masks = images.to(device, non_blocking=True), masks.to(device, non_blocking=True)
+        # Safe tensor transfer
+        images = images.to(device, non_blocking=False).clone()
+        masks = masks.to(device, non_blocking=False).clone()
         
         if scaler:
             with torch.cuda.amp.autocast():
@@ -329,7 +335,8 @@ def validate_epoch(model, loader, criterion, device):
     
     with torch.no_grad():
         for batch_idx, (images, masks) in enumerate(tqdm(loader, desc="Validation")):
-            images, masks = images.to(device), masks.to(device)
+            images = images.to(device).clone()
+            masks = masks.to(device).clone()
             
             outputs = model(images)
             loss = criterion(outputs, masks)
@@ -368,18 +375,18 @@ def main():
     
     # Memory-optimized configuration for Kaggle P100
     CONFIG = {
-        'IMG_SIZE': 256,  # Optimal for feature extraction
-        'BATCH_SIZE': 8,  # Increased for better gradients
+        'IMG_SIZE': 224,  # Reduced for T4 compatibility
+        'BATCH_SIZE': 4,  # Further reduced for stability
         'EPOCHS': 25,     # Reduced with better convergence
-        'LEARNING_RATE': 2e-4,  # Higher LR for faster convergence
-        'ENCODER': 'efficientnet-b2',  # Balanced speed/accuracy
+        'LEARNING_RATE': 1e-4,  # Reduced LR for stability
+        'ENCODER': 'efficientnet-b1',  # Smaller for T4
         'USE_MIXED_PRECISION': True,
-        'COMPILE_MODEL': True,  # PyTorch 2.0 compilation
+        'COMPILE_MODEL': False,  # Disabled for T4 compatibility
         'EARLY_STOPPING_PATIENCE': 6,
         'REDUCE_LR_PATIENCE': 3,
-        'FOCAL_GAMMA': 2.5,
-        'ACCUMULATE_GRAD': 2,  # Gradient accumulation
-        'NUM_WORKERS': 4,  # Parallel data loading
+        'FOCAL_GAMMA': 2.0,
+        'ACCUMULATE_GRAD': 4,  # Increased to maintain effective batch size
+        'NUM_WORKERS': 0,  # Disabled for stability
     }
     
     print("🚀 OPTIMIZED SLUM DETECTION TRAINING")
@@ -397,22 +404,25 @@ def main():
     val_dataset = AdvancedSlumDataset('data/val/images', 'data/val/masks', 
                                      transform=val_transform, is_train=False)
     
-    # Optimized data loaders
+    # Stable data loaders
     train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
                              shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
-                             pin_memory=True, persistent_workers=True)
+                             pin_memory=False, persistent_workers=False)
     
     val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], 
                            shuffle=False, num_workers=CONFIG['NUM_WORKERS'], 
-                           pin_memory=True, persistent_workers=True)
+                           pin_memory=False, persistent_workers=False)
     
     # Create optimized model
     model = AdvancedUNet(encoder_name=CONFIG['ENCODER'], num_classes=7).to(device)
     
-    # Compile model for PyTorch 2.0 speed boost
+    # Compile model for PyTorch 2.0 speed boost (disabled for T4)
     if CONFIG['COMPILE_MODEL'] and hasattr(torch, 'compile'):
-        model = torch.compile(model, mode='reduce-overhead')
-        print("🚀 Model compiled for faster training")
+        try:
+            model = torch.compile(model, mode='default')
+            print("🚀 Model compiled for faster training")
+        except:
+            print("⚠️ Model compilation skipped (T4 compatibility)")
     
     # Enhanced class weights for water/slum discrimination
     print("🔍 Setting enhanced class weights...")
