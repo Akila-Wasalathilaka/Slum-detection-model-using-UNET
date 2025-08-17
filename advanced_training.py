@@ -39,7 +39,7 @@ if torch.cuda.is_available():
     torch.cuda.empty_cache()
 
 class AdvancedSlumDataset(Dataset):
-    """Advanced dataset with comprehensive augmentations and class balancing"""
+    """Optimized dataset with fast loading"""
     
     def __init__(self, images_dir, masks_dir, transform=None, is_train=True, max_samples=None):
         self.image_paths = sorted(glob.glob(f"{images_dir}/*.tif"))
@@ -52,31 +52,10 @@ class AdvancedSlumDataset(Dataset):
         self.transform = transform
         self.is_train = is_train
         
-        # Calculate class weights for sampling
-        if is_train:
-            self.class_weights = self._calculate_sample_weights()
+        # Pre-compute class mapping for speed
+        self.class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
         
-        print(f"📊 Dataset: {len(self.image_paths)} samples")
-    
-    def _calculate_sample_weights(self):
-        """Calculate weights for each sample based on class distribution"""
-        print("🔍 Calculating sample weights...")
-        sample_weights = []
-        
-        for mask_path in tqdm(self.mask_paths[:1000], desc="Analyzing masks"):  # Sample for speed
-            mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-            unique_classes, counts = np.unique(mask, return_counts=True)
-            
-            # Weight based on rarest class in the mask
-            min_class_count = counts.min()
-            weight = 1.0 / (min_class_count + 1e-8)
-            sample_weights.append(weight)
-        
-        # Extend weights to all samples
-        while len(sample_weights) < len(self.mask_paths):
-            sample_weights.extend(sample_weights[:min(1000, len(self.mask_paths) - len(sample_weights))])
-        
-        return torch.tensor(sample_weights[:len(self.mask_paths)])
+        print(f"📊 Optimized Dataset: {len(self.image_paths)} samples")
     
     def __len__(self):
         return len(self.image_paths)
@@ -89,10 +68,9 @@ class AdvancedSlumDataset(Dataset):
         # Load mask
         mask = cv2.imread(self.mask_paths[idx], cv2.IMREAD_GRAYSCALE)
         
-        # Map class values to 0-6 range
-        class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
-        mapped_mask = np.zeros_like(mask)
-        for original_val, new_val in class_mapping.items():
+        # Vectorized class mapping for speed
+        mapped_mask = np.zeros_like(mask, dtype=np.uint8)
+        for original_val, new_val in self.class_mapping.items():
             mapped_mask[mask == original_val] = new_val
         
         # Apply transforms
@@ -105,46 +83,97 @@ class AdvancedSlumDataset(Dataset):
         
         return image, torch.tensor(mask, dtype=torch.long)
 
-def get_advanced_transforms(is_train=True, img_size=224):
-    """Advanced augmentation pipeline"""
+def get_advanced_transforms(is_train=True, img_size=256):
+    """Speed-optimized augmentation pipeline"""
     if is_train:
         return A.Compose([
-            A.Resize(img_size, img_size),
+            A.Resize(img_size, img_size, interpolation=cv2.INTER_LINEAR),
             
-            # Memory-efficient augmentations
+            # Fast augmentations
             A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.3),
             A.RandomRotate90(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.3),
-            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.3),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=15, p=0.4),
+            A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=0.4),
+            A.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=0.3),
             
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
     else:
         return A.Compose([
-            A.Resize(img_size, img_size),
+            A.Resize(img_size, img_size, interpolation=cv2.INTER_LINEAR),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
 
+class AttentionBlock(nn.Module):
+    """Attention for better feature focus"""
+    def __init__(self, in_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.conv_out = nn.Conv2d(in_channels // 8, in_channels, 1)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, x):
+        attention = F.relu(self.conv(x))
+        attention = self.sigmoid(self.conv_out(attention))
+        return x * attention
+
 class AdvancedUNet(nn.Module):
-    """Advanced U-Net++ with EfficientNet backbone"""
+    """Speed and memory optimized U-Net with enhanced features"""
     
-    def __init__(self, encoder_name='efficientnet-b3', num_classes=7, encoder_weights='imagenet'):
+    def __init__(self, encoder_name='efficientnet-b2', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
         
-        # Use UNet++ for better feature aggregation
-        self.model = smp.UnetPlusPlus(
+        self.backbone = smp.UnetPlusPlus(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=3,
             classes=num_classes,
             activation=None,
         )
+        
+        # Efficient water discrimination
+        self.water_detector = nn.Sequential(
+            nn.Conv2d(num_classes, 16, 1),  # 1x1 conv for speed
+            nn.ReLU(inplace=True),
+            nn.Conv2d(16, 1, 1),
+            nn.Sigmoid()
+        )
+        
+        # Lightweight feature refinement
+        self.feature_refine = nn.Sequential(
+            nn.Conv2d(num_classes, num_classes, 3, padding=1, groups=num_classes),  # Depthwise
+            nn.Conv2d(num_classes, num_classes, 1),  # Pointwise
+            nn.BatchNorm2d(num_classes),
+            nn.ReLU(inplace=True)
+        )
+        
+        # Initialize weights for faster convergence
+        self._initialize_weights()
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
     
     def forward(self, x):
-        return self.model(x)
+        base_output = self.backbone(x)
+        refined = self.feature_refine(base_output)
+        
+        # Efficient water suppression
+        water_mask = self.water_detector(refined)
+        
+        # Vectorized water suppression
+        final_output = refined * (1 - water_mask * 0.5)
+        final_output[:, 0:1] = refined[:, 0:1]  # Keep background unchanged
+        
+        return final_output
 
 class FocalLoss(nn.Module):
     """Focal Loss for handling class imbalance"""
@@ -178,20 +207,41 @@ class DiceLoss(nn.Module):
         dice = (2 * intersection + self.smooth) / (union + self.smooth)
         return 1 - dice.mean()
 
+class BoundaryLoss(nn.Module):
+    """Boundary-aware loss for better edges"""
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, inputs, targets):
+        probs = F.softmax(inputs, dim=1)
+        grad_x = torch.abs(probs[:, :, :, :-1] - probs[:, :, :, 1:])
+        grad_y = torch.abs(probs[:, :, :-1, :] - probs[:, :, 1:, :])
+        
+        target_grad_x = torch.abs(targets[:, :, :-1].float() - targets[:, :, 1:].float())
+        target_grad_y = torch.abs(targets[:, :-1, :].float() - targets[:, 1:, :].float())
+        
+        boundary_loss_x = F.mse_loss(grad_x.sum(dim=1), target_grad_x)
+        boundary_loss_y = F.mse_loss(grad_y.sum(dim=1), target_grad_y)
+        
+        return (boundary_loss_x + boundary_loss_y) / 2
+
 class CombinedLoss(nn.Module):
-    """Combined Focal + Dice Loss with better weighting"""
+    """Enhanced Combined Loss with boundary awareness"""
     
-    def __init__(self, focal_weight=0.6, dice_weight=0.4, class_weights=None, gamma=2.0):
+    def __init__(self, focal_weight=0.5, dice_weight=0.3, boundary_weight=0.2, class_weights=None, gamma=2.5):
         super(CombinedLoss, self).__init__()
         self.focal_loss = FocalLoss(alpha=1, gamma=gamma, weight=class_weights)
         self.dice_loss = DiceLoss()
+        self.boundary_loss = BoundaryLoss()
         self.focal_weight = focal_weight
         self.dice_weight = dice_weight
+        self.boundary_weight = boundary_weight
     
     def forward(self, inputs, targets):
         focal = self.focal_loss(inputs, targets)
         dice = self.dice_loss(inputs, targets)
-        return self.focal_weight * focal + self.dice_weight * dice
+        boundary = self.boundary_loss(inputs, targets)
+        return self.focal_weight * focal + self.dice_weight * dice + self.boundary_weight * boundary
 
 def calculate_metrics(pred, target, num_classes=7):
     """Calculate comprehensive metrics"""
@@ -222,35 +272,44 @@ def calculate_metrics(pred, target, num_classes=7):
     
     return float(accuracy), class_metrics
 
-def train_epoch(model, loader, criterion, optimizer, device, scaler=None):
-    """Memory-optimized training epoch"""
+def train_epoch(model, loader, criterion, optimizer, device, scaler=None, accumulate_grad=1):
+    """Optimized training epoch with gradient accumulation"""
     model.train()
     total_loss = 0
     correct_pixels = 0
     total_pixels = 0
     
-    for images, masks in tqdm(loader, desc="Training"):
-        images, masks = images.to(device), masks.to(device)
+    optimizer.zero_grad()
+    
+    for batch_idx, (images, masks) in enumerate(tqdm(loader, desc="Training")):
+        images, masks = images.to(device, non_blocking=True), masks.to(device, non_blocking=True)
         
-        optimizer.zero_grad()
-        
-        if scaler:  # Mixed precision training
+        if scaler:
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-                loss = criterion(outputs, masks)
+                loss = criterion(outputs, masks) / accumulate_grad
             
             scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            
+            if (batch_idx + 1) % accumulate_grad == 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
         else:
             outputs = model(images)
-            loss = criterion(outputs, masks)
+            loss = criterion(outputs, masks) / accumulate_grad
             loss.backward()
-            optimizer.step()
+            
+            if (batch_idx + 1) % accumulate_grad == 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+                optimizer.zero_grad()
         
-        total_loss += loss.item()
+        total_loss += loss.item() * accumulate_grad
         
-        # Simple accuracy calculation without storing tensors
+        # Fast accuracy calculation
         with torch.no_grad():
             pred = outputs.argmax(dim=1)
             correct_pixels += (pred == masks).sum().item()
@@ -309,19 +368,23 @@ def main():
     
     # Memory-optimized configuration for Kaggle P100
     CONFIG = {
-        'IMG_SIZE': 224,  # Reduced for memory efficiency
-        'BATCH_SIZE': 4,  # Smaller batch size
-        'EPOCHS': 40,     # Reasonable epochs
-        'LEARNING_RATE': 1e-4,  # Standard LR
-        'ENCODER': 'efficientnet-b3',  # Smaller encoder
+        'IMG_SIZE': 256,  # Optimal for feature extraction
+        'BATCH_SIZE': 8,  # Increased for better gradients
+        'EPOCHS': 25,     # Reduced with better convergence
+        'LEARNING_RATE': 2e-4,  # Higher LR for faster convergence
+        'ENCODER': 'efficientnet-b2',  # Balanced speed/accuracy
         'USE_MIXED_PRECISION': True,
-        'EARLY_STOPPING_PATIENCE': 10,
-        'REDUCE_LR_PATIENCE': 5,
-        'FOCAL_GAMMA': 2.0,
+        'COMPILE_MODEL': True,  # PyTorch 2.0 compilation
+        'EARLY_STOPPING_PATIENCE': 6,
+        'REDUCE_LR_PATIENCE': 3,
+        'FOCAL_GAMMA': 2.5,
+        'ACCUMULATE_GRAD': 2,  # Gradient accumulation
+        'NUM_WORKERS': 4,  # Parallel data loading
     }
     
-    print("🚀 ADVANCED SLUM DETECTION TRAINING")
+    print("🚀 OPTIMIZED SLUM DETECTION TRAINING")
     print("=" * 50)
+    print("Features: Speed optimization, memory efficiency, enhanced accuracy")
     for key, value in CONFIG.items():
         print(f"{key}: {value}")
     
@@ -334,38 +397,49 @@ def main():
     val_dataset = AdvancedSlumDataset('data/val/images', 'data/val/masks', 
                                      transform=val_transform, is_train=False)
     
-    # Create data loaders with memory optimization
+    # Optimized data loaders
     train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                             shuffle=True, num_workers=2, pin_memory=False)
+                             shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
+                             pin_memory=True, persistent_workers=True)
     
     val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                           shuffle=False, num_workers=2, pin_memory=False)
+                           shuffle=False, num_workers=CONFIG['NUM_WORKERS'], 
+                           pin_memory=True, persistent_workers=True)
     
-    # Create advanced model
+    # Create optimized model
     model = AdvancedUNet(encoder_name=CONFIG['ENCODER'], num_classes=7).to(device)
     
-    # Simplified class weights based on known distribution
-    print("🔍 Setting class weights...")
-    # Based on analysis: [0.08%, 12.44%, 31.89%, 18.75%, 15.84%, 9.15%, 11.84%]
-    class_weights = torch.tensor([10.0, 1.0, 0.5, 1.0, 1.0, 2.0, 1.5]).to(device)
+    # Compile model for PyTorch 2.0 speed boost
+    if CONFIG['COMPILE_MODEL'] and hasattr(torch, 'compile'):
+        model = torch.compile(model, mode='reduce-overhead')
+        print("🚀 Model compiled for faster training")
+    
+    # Enhanced class weights for water/slum discrimination
+    print("🔍 Setting enhanced class weights...")
+    # Background, Slum-A, Slum-Main, Slum-B, Slum-C, Slum-D, Slum-E
+    class_weights = torch.tensor([15.0, 1.2, 0.4, 1.0, 1.1, 2.5, 1.8]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
-    # Advanced loss function with better parameters
+    # Enhanced loss function with boundary awareness
     criterion = CombinedLoss(
-        focal_weight=0.6, 
-        dice_weight=0.4, 
+        focal_weight=0.5, 
+        dice_weight=0.3,
+        boundary_weight=0.2,
         class_weights=class_weights,
         gamma=CONFIG['FOCAL_GAMMA']
     )
     
-    # Advanced optimizer with weight decay
+    # Optimized optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=CONFIG['LEARNING_RATE'], 
-                                 weight_decay=1e-4, betas=(0.9, 0.999))
+                                 weight_decay=1e-4, betas=(0.9, 0.999), eps=1e-8, 
+                                 fused=True if torch.cuda.is_available() else False)
     
-    # Advanced scheduler
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-        optimizer, T_0=10, T_mult=2, eta_min=1e-6
+    # Faster convergence scheduler
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=CONFIG['LEARNING_RATE'], 
+        epochs=CONFIG['EPOCHS'], steps_per_epoch=len(train_loader),
+        pct_start=0.1, anneal_strategy='cos'
     )
     
     # Mixed precision scaler
@@ -386,9 +460,9 @@ def main():
         print(f"\\n📅 Epoch {epoch+1}/{CONFIG['EPOCHS']}")
         print("-" * 40)
         
-        # Training
+        # Optimized training
         train_loss, train_acc, train_class_metrics = train_epoch(
-            model, train_loader, criterion, optimizer, device, scaler
+            model, train_loader, criterion, optimizer, device, scaler, CONFIG['ACCUMULATE_GRAD']
         )
         
         # Validation
@@ -413,6 +487,11 @@ def main():
         print(f"🏃 Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
         print(f"🎯 Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Mean IoU: {mean_iou:.4f}")
         print(f"📈 Learning Rate: {current_lr:.6f}")
+        print(f"⚡ GPU Memory: {torch.cuda.memory_allocated()/1024**3:.1f}GB" if torch.cuda.is_available() else "")
+        
+        # Memory cleanup
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         
         # Print class-wise metrics for validation with class names
         class_names = {0: 'Background', 1: 'Slum-A', 2: 'Slum-Main', 3: 'Slum-B', 4: 'Slum-C', 5: 'Slum-D', 6: 'Slum-E'}
@@ -498,13 +577,19 @@ def main():
     # Summary text
     axes[1, 1].axis('off')
     summary_text = f"""
-TRAINING SUMMARY
-{'='*20}
+OPTIMIZED TRAINING SUMMARY
+{'='*25}
 
 Best Validation Accuracy: {best_val_acc:.4f}
 Total Epochs: {len(training_history['train_loss'])}
 Final Train Loss: {training_history['train_loss'][-1]:.4f}
 Final Val Loss: {training_history['val_loss'][-1]:.4f}
+
+Optimizations Applied:
+• Model compilation: {'✓' if CONFIG['COMPILE_MODEL'] else '✗'}
+• Gradient accumulation: {CONFIG['ACCUMULATE_GRAD']}x
+• Mixed precision: {'✓' if CONFIG['USE_MIXED_PRECISION'] else '✗'}
+• Parallel workers: {CONFIG['NUM_WORKERS']}
 
 Model: {CONFIG['ENCODER']}
 Image Size: {CONFIG['IMG_SIZE']}x{CONFIG['IMG_SIZE']}
@@ -512,22 +597,22 @@ Batch Size: {CONFIG['BATCH_SIZE']}
 
 Files Saved:
 • best_advanced_slum_model.pth
-• best_training_state.pth
 • advanced_training_history.json
 """
     
     axes[1, 1].text(0.1, 0.9, summary_text, transform=axes[1, 1].transAxes,
                    fontsize=11, verticalalignment='top', fontfamily='monospace',
-                   bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+                   bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
     
     plt.tight_layout()
     plt.savefig('advanced_training_history.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    print(f"\\n🎉 Training complete!")
+    print(f"\\n🎉 Optimized training complete!")
     print(f"🏆 Best validation accuracy: {best_val_acc:.4f}")
     print(f"💾 Model saved as 'best_advanced_slum_model.pth'")
     print(f"📊 Training history saved as 'advanced_training_history.json'")
+    print(f"⚡ Training optimizations: Gradient accumulation, model compilation, efficient data loading")
 
 if __name__ == "__main__":
     main()

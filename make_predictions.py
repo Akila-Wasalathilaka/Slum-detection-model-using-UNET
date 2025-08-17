@@ -22,12 +22,64 @@ from albumentations.pytorch import ToTensorV2
 import warnings
 warnings.filterwarnings('ignore')
 
+class WaterDiscriminator:
+    """Post-processing to reduce water misclassification"""
+    
+    def detect_water_regions(self, image):
+        """Detect water-like regions using color and texture"""
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        
+        # Water color ranges
+        water_mask1 = cv2.inRange(hsv, np.array([100, 50, 50]), np.array([130, 255, 255]))
+        water_mask2 = cv2.inRange(hsv, np.array([0, 0, 0]), np.array([180, 30, 100]))
+        water_mask = cv2.bitwise_or(water_mask1, water_mask2)
+        
+        # Low texture (water is smooth)
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        texture = cv2.filter2D(gray, -1, np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]))
+        low_texture = (np.abs(texture) < 20).astype(np.uint8) * 255
+        
+        water_mask = cv2.bitwise_and(water_mask, low_texture)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        water_mask = cv2.morphologyEx(water_mask, cv2.MORPH_CLOSE, kernel)
+        
+        return water_mask > 0
+    
+    def detect_slum_texture(self, image):
+        """Detect slum-like high-frequency textures"""
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        texture = cv2.filter2D(gray, -1, np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]))
+        edges = cv2.Canny(gray, 50, 150)
+        
+        high_texture = np.abs(texture) > 30
+        edge_density = cv2.dilate(edges, np.ones((3, 3)), iterations=1) > 0
+        
+        return high_texture & edge_density
+    
+    def post_process(self, image, prediction):
+        """Apply water/slum discrimination"""
+        water_regions = self.detect_water_regions(image)
+        slum_texture = self.detect_slum_texture(image)
+        
+        corrected = prediction.copy()
+        
+        # Fix water misclassified as slum
+        for slum_class in [1, 2, 3, 4, 5, 6]:
+            slum_mask = (prediction == slum_class)
+            water_slum_overlap = slum_mask & water_regions & (~slum_texture)
+            corrected[water_slum_overlap] = 0  # Change to background
+        
+        return corrected
+
 class AdvancedPredictor:
     def __init__(self, model_path, data_root="data", output_dir="predictions"):
         self.model_path = model_path
         self.data_root = Path(data_root)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
+        
+        # Initialize water discriminator
+        self.water_discriminator = WaterDiscriminator()
         
         # Class information (mapped to 0-6)
         self.class_names = {
@@ -55,16 +107,16 @@ class AdvancedPredictor:
         
         # Setup transforms with TTA support
         self.transform = A.Compose([
-            A.Resize(224, 224),  # Match training resolution
+            A.Resize(256, 256),  # Match training resolution
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
         
         # Test-time augmentation transforms
         self.tta_transforms = [
-            A.Compose([A.Resize(224, 224), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
-            A.Compose([A.Resize(224, 224), A.HorizontalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
-            A.Compose([A.Resize(224, 224), A.VerticalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(256, 256), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(256, 256), A.HorizontalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(256, 256), A.VerticalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
         ]
     
     def load_model(self):
@@ -76,7 +128,7 @@ class AdvancedPredictor:
             from advanced_training import AdvancedUNet
             
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = AdvancedUNet(encoder_name='efficientnet-b3', num_classes=7)
+            model = AdvancedUNet(encoder_name='efficientnet-b2', num_classes=7)
             
             if os.path.exists(self.model_path):
                 model.load_state_dict(torch.load(self.model_path, map_location=device))
@@ -150,6 +202,9 @@ class AdvancedPredictor:
         prediction = np.round(np.mean(predictions, axis=0)).astype(np.uint8)
         confidence = np.mean(confidences, axis=0)
         
+        # Apply water discrimination post-processing
+        prediction = self.water_discriminator.post_process(image, prediction)
+        
         # Resize prediction back to original size
         prediction_resized = cv2.resize(prediction.astype(np.uint8), 
                                        (original_size[1], original_size[0]), 
@@ -186,8 +241,17 @@ class AdvancedPredictor:
             'mean_confidence': float(np.mean(confidence)),
             'min_confidence': float(np.min(confidence)),
             'max_confidence': float(np.max(confidence)),
-            'low_confidence_pixels': float(np.sum(confidence < 0.5) / confidence.size)
+            'low_confidence_pixels': float(np.sum(confidence < 0.5) / confidence.size),
+            'issues': []
         }
+        
+        # Detect potential issues
+        for slum_class in [1, 2, 3, 4, 5, 6]:
+            if slum_class in analysis['unique_classes']:
+                slum_mask = prediction == slum_class
+                slum_confidence = confidence[slum_mask]
+                if len(slum_confidence) > 0 and np.mean(slum_confidence) < 0.6:
+                    analysis['issues'].append(f"Low confidence in {self.class_names[slum_class]}")
         
         # Calculate class distribution
         total_pixels = prediction.size
@@ -290,12 +354,15 @@ class AdvancedPredictor:
         if n_cols == 4:
             axes[1, 2].axis('off')
             summary_text = f"""
-PREDICTION ANALYSIS
+ENHANCED ANALYSIS
 {'='*20}
 
 Classes Found: {len(analysis['unique_classes'])}
 Mean Confidence: {analysis['mean_confidence']:.3f}
 Low Confidence: {analysis['low_confidence_pixels']*100:.1f}%
+
+Quality Issues:
+{chr(10).join([f"• {issue}" for issue in analysis['issues']]) if analysis['issues'] else "• No issues detected"}
 
 Dominant Classes:
 """
@@ -342,19 +409,22 @@ Dominant Classes:
             
             # Add summary text
             summary_text = f"""
-ANALYSIS SUMMARY
+ENHANCED ANALYSIS
 {'='*16}
 
 Classes: {len(analysis['unique_classes'])}
 Confidence: {analysis['mean_confidence']:.3f}
 Low Conf: {analysis['low_confidence_pixels']*100:.1f}%
+Issues: {len(analysis['issues'])}
 """
             if 'accuracy' in analysis:
-                summary_text += f"Accuracy: {analysis['accuracy']:.3f}"
+                summary_text += f"Accuracy: {analysis['accuracy']:.3f}\n"
+            
+            summary_text += "\nEnhancements:\n• Water discrimination\n• Test-time augmentation\n• Post-processing"
             
             axes[1, 2].text(0.05, 0.6, summary_text, transform=axes[1, 2].transAxes,
                            fontsize=9, verticalalignment='top', fontfamily='monospace',
-                           bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.8))
+                           bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgreen", alpha=0.8))
         
         plt.suptitle(title, fontsize=14, fontweight='bold')
         plt.tight_layout()
@@ -599,9 +669,10 @@ Output Directory: {self.output_dir}
         print(f"💾 Predictions data saved to: {output_file}")
     
     def run_comprehensive_prediction(self, num_predictions=25):
-        """Run comprehensive prediction pipeline"""
-        print("🚀 STARTING COMPREHENSIVE PREDICTION GENERATION")
+        """Run enhanced prediction pipeline with water discrimination"""
+        print("🚀 STARTING ENHANCED PREDICTION GENERATION")
         print("=" * 60)
+        print("Features: Water discrimination, TTA, post-processing")
         
         # Generate predictions
         predictions = self.generate_diverse_predictions(num_predictions)
@@ -616,20 +687,21 @@ Output Directory: {self.output_dir}
         # Save data
         self.save_predictions_json(predictions)
         
-        print(f"\\n✅ PREDICTION GENERATION COMPLETE!")
-        print(f"📊 Generated {len(predictions)} predictions")
+        print(f"\\n✅ ENHANCED PREDICTION GENERATION COMPLETE!")
+        print(f"📊 Generated {len(predictions)} predictions with water discrimination")
         print(f"📁 Results saved in: {self.output_dir}")
         print(f"🖼️ Individual predictions: prediction_XX_*.png")
         print(f"📈 Summary chart: prediction_summary.png")
         print(f"💾 Data file: predictions_data.json")
+        print(f"🌊 Water misclassification: Reduced through post-processing")
         
         return predictions
 
 def main():
-    """Main function"""
+    """Main function for enhanced predictions"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Generate comprehensive predictions')
+    parser = argparse.ArgumentParser(description='Generate enhanced predictions with water discrimination')
     parser.add_argument('--model', default='best_advanced_slum_model.pth', 
                        help='Path to trained model')
     parser.add_argument('--data', default='data', help='Data directory')
