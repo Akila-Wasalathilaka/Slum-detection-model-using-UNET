@@ -61,7 +61,7 @@ class ChartGenerator:
                 from advanced_training import AdvancedUNet
                 
                 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                model = AdvancedUNet(encoder_name='efficientnet-b3', num_classes=7)
+                model = AdvancedUNet(encoder_name='efficientnet-b1', num_classes=7)
                 model.load_state_dict(torch.load(self.model_path, map_location=device))
                 model.to(device)
                 model.eval()

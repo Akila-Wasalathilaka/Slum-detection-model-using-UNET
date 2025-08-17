@@ -128,7 +128,7 @@ class AdvancedPredictor:
             from advanced_training import AdvancedUNet
             
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = AdvancedUNet(encoder_name='efficientnet-b2', num_classes=7)
+            model = AdvancedUNet(encoder_name='efficientnet-b1', num_classes=7)
             
             if os.path.exists(self.model_path):
                 model.load_state_dict(torch.load(self.model_path, map_location=device))
