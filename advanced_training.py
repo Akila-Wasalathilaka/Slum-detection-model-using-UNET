@@ -39,7 +39,7 @@ if torch.cuda.is_available():
     torch.cuda.empty_cache()
 
 class AdvancedSlumDataset(Dataset):
-    """Optimized dataset with fast loading"""
+    """Optimized dataset with class balancing"""
     
     def __init__(self, images_dir, masks_dir, transform=None, is_train=True, max_samples=None):
         self.image_paths = sorted(glob.glob(f"{images_dir}/*.tif"))
@@ -55,7 +55,25 @@ class AdvancedSlumDataset(Dataset):
         # Pre-compute class mapping for speed
         self.class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
         
+        # Class balancing: Pre-compute sample weights for rare classes
+        if is_train:
+            self.sample_weights = self._compute_sample_weights()
+        
         print(f"📊 Optimized Dataset: {len(self.image_paths)} samples")
+    
+    def _compute_sample_weights(self):
+        """Compute weights for each sample based on class rarity"""
+        weights = []
+        for mask_path in self.mask_paths:
+            mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            unique_classes = np.unique(mask)
+            # Higher weight for samples with rare classes
+            weight = 1.0
+            if 0 in unique_classes: weight += 2.0  # Background boost
+            if 200 in unique_classes: weight += 1.5  # Rare slum type
+            if 233 in unique_classes: weight += 1.2  # Another rare type
+            weights.append(weight)
+        return weights
     
     def __len__(self):
         return len(self.image_paths)
@@ -84,17 +102,25 @@ class AdvancedSlumDataset(Dataset):
         return image, torch.tensor(mask, dtype=torch.long)
 
 def get_advanced_transforms(is_train=True, img_size=224):
-    """Speed-optimized augmentation pipeline"""
+    """Slum-focused augmentation pipeline"""
     if is_train:
         return A.Compose([
             A.Resize(img_size, img_size, interpolation=cv2.INTER_LINEAR),
             
-            # Fast augmentations
+            # Slum-specific augmentations
             A.HorizontalFlip(p=0.5),
             A.RandomRotate90(p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.15, rotate_limit=15, p=0.4),
-            A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=0.4),
-            A.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=0.3),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=20, p=0.6),
+            
+            # Enhanced for slum texture detection
+            A.RandomBrightnessContrast(brightness_limit=0.25, contrast_limit=0.25, p=0.6),
+            A.HueSaturationValue(hue_shift_limit=15, sat_shift_limit=20, val_shift_limit=15, p=0.5),
+            A.CLAHE(clip_limit=2.0, tile_grid_size=(4, 4), p=0.3),  # Enhance local contrast
+            A.Sharpen(alpha=(0.1, 0.3), lightness=(0.8, 1.2), p=0.3),  # Enhance edges
+            
+            # Simulate different lighting conditions
+            A.RandomShadow(p=0.2),
+            A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.3, p=0.1),
             
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
@@ -120,7 +146,7 @@ class AttentionBlock(nn.Module):
         return x * attention
 
 class AdvancedUNet(nn.Module):
-    """Speed and memory optimized U-Net with enhanced features"""
+    """Slum-optimized U-Net with class-specific features"""
     
     def __init__(self, encoder_name='efficientnet-b2', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
@@ -133,21 +159,23 @@ class AdvancedUNet(nn.Module):
             activation=None,
         )
         
-        # Efficient water discrimination
-        self.water_detector = nn.Sequential(
-            nn.Conv2d(num_classes, 16, 1),  # 1x1 conv for speed
+        # Slum texture enhancement
+        self.texture_enhancer = nn.Sequential(
+            nn.Conv2d(num_classes, 32, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(16, 1, 1),
+            nn.Conv2d(32, num_classes, 1),
             nn.Sigmoid()
         )
         
-        # Lightweight feature refinement
-        self.feature_refine = nn.Sequential(
-            nn.Conv2d(num_classes, num_classes, 3, padding=1, groups=num_classes),  # Depthwise
-            nn.Conv2d(num_classes, num_classes, 1),  # Pointwise
-            nn.BatchNorm2d(num_classes),
-            nn.ReLU(inplace=True)
-        )
+        # Class-specific attention for rare classes
+        self.class_attention = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(1, 8, 3, padding=1),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(8, 1, 1),
+                nn.Sigmoid()
+            ) for _ in range(num_classes)
+        ])
         
         # Initialize weights for faster convergence
         self._initialize_weights()
@@ -166,16 +194,17 @@ class AdvancedUNet(nn.Module):
         # Clone input to avoid CUDA graph issues
         x = x.clone()
         base_output = self.backbone(x)
-        refined = self.feature_refine(base_output)
         
-        # Efficient water suppression with cloning
-        water_mask = self.water_detector(refined)
+        # Enhance slum textures
+        texture_weights = self.texture_enhancer(base_output)
+        enhanced_output = base_output * (1 + texture_weights * 0.3)
         
-        # Safe tensor operations
-        final_output = refined.clone()
-        suppression = (1 - water_mask * 0.5)
-        final_output = final_output * suppression
-        final_output[:, 0:1] = refined[:, 0:1].clone()  # Keep background unchanged
+        # Apply class-specific attention for rare classes
+        final_output = enhanced_output.clone()
+        for i, attention_layer in enumerate(self.class_attention):
+            class_map = enhanced_output[:, i:i+1]
+            attention = attention_layer(class_map)
+            final_output[:, i:i+1] = class_map * (1 + attention * 0.5)
         
         return final_output
 
@@ -230,9 +259,9 @@ class BoundaryLoss(nn.Module):
         return (boundary_loss_x + boundary_loss_y) / 2
 
 class CombinedLoss(nn.Module):
-    """Enhanced Combined Loss with boundary awareness"""
+    """Enhanced Combined Loss for class imbalance"""
     
-    def __init__(self, focal_weight=0.5, dice_weight=0.3, boundary_weight=0.2, class_weights=None, gamma=2.5):
+    def __init__(self, focal_weight=0.6, dice_weight=0.4, boundary_weight=0.0, class_weights=None, gamma=3.0):
         super(CombinedLoss, self).__init__()
         self.focal_loss = FocalLoss(alpha=1, gamma=gamma, weight=class_weights)
         self.dice_loss = DiceLoss()
@@ -244,11 +273,16 @@ class CombinedLoss(nn.Module):
     def forward(self, inputs, targets):
         focal = self.focal_loss(inputs, targets)
         dice = self.dice_loss(inputs, targets)
-        boundary = self.boundary_loss(inputs, targets)
-        return self.focal_weight * focal + self.dice_weight * dice + self.boundary_weight * boundary
+        
+        # Skip boundary loss for faster training and focus on class balance
+        if self.boundary_weight > 0:
+            boundary = self.boundary_loss(inputs, targets)
+            return self.focal_weight * focal + self.dice_weight * dice + self.boundary_weight * boundary
+        else:
+            return self.focal_weight * focal + self.dice_weight * dice
 
 def calculate_metrics(pred, target, num_classes=7):
-    """Calculate comprehensive metrics"""
+    """Calculate comprehensive metrics with proper handling"""
     pred = pred.cpu().numpy().flatten()
     target = target.cpu().numpy().flatten()
     
@@ -262,16 +296,21 @@ def calculate_metrics(pred, target, num_classes=7):
         target_class = (target == class_id)
         
         if target_class.sum() > 0:  # Only calculate if class exists
-            precision = (pred_class & target_class).sum() / (pred_class.sum() + 1e-8)
-            recall = (pred_class & target_class).sum() / (target_class.sum() + 1e-8)
+            tp = (pred_class & target_class).sum()
+            fp = (pred_class & ~target_class).sum()
+            fn = (~pred_class & target_class).sum()
+            
+            precision = tp / (tp + fp + 1e-8)
+            recall = tp / (tp + fn + 1e-8)
             f1 = 2 * precision * recall / (precision + recall + 1e-8)
-            iou = (pred_class & target_class).sum() / ((pred_class | target_class).sum() + 1e-8)
+            iou = tp / (tp + fp + fn + 1e-8)
             
             class_metrics[class_id] = {
                 'precision': float(precision),
                 'recall': float(recall),
                 'f1': float(f1),
-                'iou': float(iou)
+                'iou': float(iou),
+                'support': int(target_class.sum())
             }
     
     return float(accuracy), class_metrics
@@ -404,10 +443,16 @@ def main():
     val_dataset = AdvancedSlumDataset('data/val/images', 'data/val/masks', 
                                      transform=val_transform, is_train=False)
     
-    # Stable data loaders
-    train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                             shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
-                             pin_memory=False, persistent_workers=False)
+    # Class-balanced data loaders
+    if hasattr(train_dataset, 'sample_weights'):
+        sampler = WeightedRandomSampler(train_dataset.sample_weights, len(train_dataset))
+        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
+                                 sampler=sampler, num_workers=CONFIG['NUM_WORKERS'], 
+                                 pin_memory=False, persistent_workers=False)
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
+                                 shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
+                                 pin_memory=False, persistent_workers=False)
     
     val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], 
                            shuffle=False, num_workers=CONFIG['NUM_WORKERS'], 
@@ -424,20 +469,21 @@ def main():
         except:
             print("⚠️ Model compilation skipped (T4 compatibility)")
     
-    # Enhanced class weights for water/slum discrimination
-    print("🔍 Setting enhanced class weights...")
-    # Background, Slum-A, Slum-Main, Slum-B, Slum-C, Slum-D, Slum-E
-    class_weights = torch.tensor([15.0, 1.2, 0.4, 1.0, 1.1, 2.5, 1.8]).to(device)
+    # Class imbalance fix: Inverse frequency weights
+    print("🔍 Setting inverse frequency class weights...")
+    # Class distribution: [0.08%, 12.44%, 31.89%, 18.75%, 15.84%, 9.15%, 11.84%]
+    # Inverse weights to balance rare classes
+    class_weights = torch.tensor([50.0, 2.5, 1.0, 1.7, 2.0, 3.5, 2.7]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
-    # Enhanced loss function with boundary awareness
+    # Class imbalance focused loss function
     criterion = CombinedLoss(
-        focal_weight=0.5, 
+        focal_weight=0.7,  # Higher focal weight for rare classes
         dice_weight=0.3,
-        boundary_weight=0.2,
+        boundary_weight=0.0,  # Disable for speed and focus
         class_weights=class_weights,
-        gamma=CONFIG['FOCAL_GAMMA']
+        gamma=3.0  # Higher gamma for harder examples
     )
     
     # Optimized optimizer

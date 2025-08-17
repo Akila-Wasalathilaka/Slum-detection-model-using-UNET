@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Kaggle Setup Script for Slum Detection
-=====================================
-Run this first in Kaggle to clone repo and install dependencies
+Kaggle Analysis Pipeline for Slum Detection
+==========================================
+Generates charts and predictions after training.
 """
 
 import subprocess
@@ -20,51 +20,54 @@ def run_command(command):
     return result.returncode == 0
 
 def main():
-    print("🚀 KAGGLE SLUM DETECTION SETUP")
-    print("=" * 50)
+    print("📊 KAGGLE SLUM DETECTION ANALYSIS PIPELINE")
+    print("=" * 70)
+    print("Generate charts and predictions from trained model!")
+    print("1. Generate comprehensive charts")
+    print("2. Create enhanced predictions with analysis")
+    print()
     
-    # Clone repository
-    print("📥 Cloning repository...")
-    if not run_command("git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git"):
-        print("❌ Failed to clone repository")
+    # Check if model exists
+    if not os.path.exists("best_advanced_slum_model.pth"):
+        print("❌ Trained model not found!")
+        print("Please run the training pipeline first:")
+        print("!python kaggle_complete_pipeline.py")
         return
     
-    # Change to project directory
-    os.chdir("Slum-detection-model-using-UNET")
+    # Step 1: Generate charts
+    print("\n" + "="*60)
+    print("🚀 Generating comprehensive analysis charts")
+    print("="*60)
+    if not run_command("python create_charts.py --model best_advanced_slum_model.pth"):
+        print("⚠️ Chart generation failed, but continuing...")
     
-    # Install additional packages not in Kaggle by default
-    print("📦 Installing additional packages...")
-    packages = [
-        "albumentations",
-        "segmentation-models-pytorch", 
-        "timm",
-        "efficientnet-pytorch"
-    ]
+    # Step 2: Generate enhanced predictions
+    print("\n" + "="*60)
+    print("🚀 Generating 25+ enhanced predictions with post-processing")
+    print("="*60)
+    if not run_command("python make_predictions.py --model best_advanced_slum_model.pth --num 25"):
+        print("⚠️ Prediction generation failed...")
+        return
     
-    for package in packages:
-        print(f"Installing {package}...")
-        run_command(f"pip install {package}")
-    
-    # Verify data structure
-    print("📊 Verifying data structure...")
-    if os.path.exists("data"):
-        for split in ["train", "val", "test"]:
-            img_path = f"data/{split}/images"
-            mask_path = f"data/{split}/masks"
-            if os.path.exists(img_path) and os.path.exists(mask_path):
-                img_count = len([f for f in os.listdir(img_path) if f.endswith('.tif')])
-                mask_count = len([f for f in os.listdir(mask_path) if f.endswith('.png')])
-                print(f"✅ {split.upper()}: {img_count} images, {mask_count} masks")
-            else:
-                print(f"❌ {split.upper()}: Missing directories")
-    else:
-        print("❌ Data directory not found!")
-    
-    print("\n✅ Setup complete! You can now run:")
-    print("1. python comprehensive_analysis.py  # Analyze dataset")
-    print("2. python advanced_training.py       # Train model")
-    print("3. python create_charts.py          # Generate charts")
-    print("4. python make_predictions.py       # Generate predictions")
+    # Final summary
+    print("\n" + "="*70)
+    print("🎉 ANALYSIS PIPELINE COMPLETED!")
+    print("="*70)
+    print()
+    print("📁 Generated Files:")
+    print("├── charts/")
+    print("│   ├── dataset_overview.png")
+    print("│   ├── model_performance.png")
+    print("│   └── training_analysis.png")
+    print("├── predictions/")
+    print("│   ├── prediction_01_*.png (25+ files)")
+    print("│   ├── prediction_summary.png")
+    print("│   └── predictions_data.json")
+    print()
+    print("📊 Check the charts/ directory for detailed analysis")
+    print("🎯 Check the predictions/ directory for enhanced predictions")
+    print("🌊 Water discrimination: Applied in predictions")
+    print("⚡ Enhanced features: TTA, post-processing, quality analysis")
 
 if __name__ == "__main__":
     main()

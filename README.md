@@ -2,33 +2,41 @@
 
 A comprehensive, state-of-the-art implementation for multi-class slum detection using advanced U-Net architecture with EfficientNet backbone.
 
-## 🚀 Kaggle Quick Start (One-Click Solution)
+## 🚀 Kaggle Quick Start (Two-Pipeline Solution)
 
-### Enhanced Pipeline (Fixes Water Misclassification)
+### Step 1: Training Pipeline (Enhanced with Water Discrimination)
 ```python
-# In Kaggle Notebook, run this single command for improved accuracy:
+# In Kaggle Notebook, run this for model training:
 !git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git
 %cd Slum-detection-model-using-UNET
 !python kaggle_complete_pipeline.py
 ```
 
-### Option 2: Step-by-Step
+### Step 2: Analysis Pipeline (Charts + Predictions)
+```python
+# After training completes, run this for analysis:
+!python kaggle_setup.py
+```
+
+### Alternative: Manual Step-by-Step
 ```python
 # 1. Clone and setup
 !git clone https://github.com/Akila-Wasalathilaka/Slum-detection-model-using-UNET.git
 %cd Slum-detection-model-using-UNET
-!python kaggle_setup.py
 
-# 2. Run analysis
+# 2. Install dependencies
+!pip install albumentations segmentation-models-pytorch timm efficientnet-pytorch
+
+# 3. Run analysis
 !python quick_analysis.py
 
-# 3. Train advanced model
+# 4. Train model
 !python advanced_training.py
 
-# 4. Generate charts
+# 5. Generate charts
 !python create_charts.py
 
-# 5. Make predictions
+# 6. Make predictions
 !python make_predictions.py --num 25
 ```
 
@@ -104,8 +112,8 @@ Based on comprehensive analysis, the dataset contains:
 │   ├── prediction_01_*.png
 │   ├── prediction_summary.png
 │   └── predictions_data.json
-├── kaggle_setup.py              # Kaggle setup script
-├── kaggle_complete_pipeline.py  # ENHANCED complete pipeline (fixes water issues)
+├── kaggle_complete_pipeline.py  # TRAINING pipeline (setup + analysis + training)
+├── kaggle_setup.py              # ANALYSIS pipeline (charts + predictions)
 ├── advanced_training.py         # ENHANCED training (water discrimination)
 ├── create_charts.py             # Comprehensive chart generation
 ├── make_predictions.py          # ENHANCED predictions (post-processing)
@@ -212,12 +220,16 @@ For issues or questions:
 
 ---
 
-## 🔥 Enhanced Pipeline
+## 🔥 Two-Pipeline Approach
 
-**The pipeline now includes water misclassification fixes:**
-
+**Training Pipeline (kaggle_complete_pipeline.py):**
 ```python
 !python kaggle_complete_pipeline.py
+```
+
+**Analysis Pipeline (kaggle_setup.py):**
+```python
+!python kaggle_setup.py
 ```
 
 **Key enhancements:**
@@ -226,5 +238,6 @@ For issues or questions:
 - ✅ Enhanced confidence scoring and quality analysis
 - ✅ Test-time augmentation for better accuracy
 - ✅ Intelligent post-processing and error correction
+- ✅ Separated training and analysis for better resource management
 
 **Ready to detect slums with enhanced accuracy and water discrimination! 🚀**
