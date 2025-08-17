@@ -62,17 +62,17 @@ class AdvancedSlumDataset(Dataset):
         print(f"📊 Optimized Dataset: {len(self.image_paths)} samples")
     
     def _compute_sample_weights(self):
-        """Compute weights based on comprehensive analysis"""
+        """AGGRESSIVE slum sample weighting"""
         weights = []
         for mask_path in self.mask_paths:
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             unique_classes = np.unique(mask)
-            # Prioritize confirmed slum classes and rare classes
-            weight = 1.0
-            if 233 in unique_classes: weight += 4.0  # Primary slums (confirmed)
-            if 111 in unique_classes: weight += 3.0  # Secondary slums (confirmed) 
-            if 109 in unique_classes: weight += 1.5  # Informal settlements (potential slums)
-            if 0 in unique_classes: weight += 2.0   # Background (very rare)
+            # MASSIVELY boost slum samples
+            weight = 0.1  # Start very low
+            if 233 in unique_classes: weight = 10.0  # PRIMARY SLUMS - highest priority
+            elif 111 in unique_classes: weight = 8.0  # SECONDARY SLUMS - high priority
+            elif 109 in unique_classes: weight = 5.0  # POTENTIAL SLUMS - medium priority
+            elif 0 in unique_classes: weight = 2.0   # Background
             weights.append(weight)
         return weights
     
@@ -196,16 +196,21 @@ class AdvancedUNet(nn.Module):
         
         # Enhance urban textures
         urban_weights = self.urban_enhancer(base_output)
-        enhanced_output = base_output * (1 + urban_weights * 0.2)
+        enhanced_output = base_output * (1 + urban_weights * 0.3)
         
-        # Apply slum-specific attention
+        # Apply AGGRESSIVE slum-specific attention
         slum_attention_weights = self.slum_attention(enhanced_output)
         
         final_output = enhanced_output.clone()
-        # Boost slum-related classes (2=informal settlements, 3=secondary slums, 6=primary slums)
-        final_output[:, 2:3] = enhanced_output[:, 2:3] * (1 + slum_attention_weights[:, 0:1] * 0.4)
-        final_output[:, 3:4] = enhanced_output[:, 3:4] * (1 + slum_attention_weights[:, 1:2] * 0.5)
-        final_output[:, 6:7] = enhanced_output[:, 6:7] * (1 + slum_attention_weights[:, 2:3] * 0.6)
+        # MASSIVELY boost slum classes - FORCE detection
+        final_output[:, 2:3] = enhanced_output[:, 2:3] * (1 + slum_attention_weights[:, 0:1] * 1.0)  # 2x boost
+        final_output[:, 3:4] = enhanced_output[:, 3:4] * (1 + slum_attention_weights[:, 1:2] * 1.5)  # 2.5x boost  
+        final_output[:, 6:7] = enhanced_output[:, 6:7] * (1 + slum_attention_weights[:, 2:3] * 2.0)  # 3x boost
+        
+        # Suppress non-slum classes
+        final_output[:, 1:2] = enhanced_output[:, 1:2] * 0.5  # Suppress mixed urban
+        final_output[:, 4:5] = enhanced_output[:, 4:5] * 0.3  # Suppress commercial
+        final_output[:, 5:6] = enhanced_output[:, 5:6] * 0.3  # Suppress commercial-2
         
         return final_output
 
@@ -260,27 +265,35 @@ class BoundaryLoss(nn.Module):
         return (boundary_loss_x + boundary_loss_y) / 2
 
 class CombinedLoss(nn.Module):
-    """Enhanced Combined Loss for class imbalance"""
+    """SLUM-FOCUSED Loss - Force slum detection"""
     
-    def __init__(self, focal_weight=0.6, dice_weight=0.4, boundary_weight=0.0, class_weights=None, gamma=3.0):
+    def __init__(self, focal_weight=0.8, dice_weight=0.2, boundary_weight=0.0, class_weights=None, gamma=4.0):
         super(CombinedLoss, self).__init__()
-        self.focal_loss = FocalLoss(alpha=1, gamma=gamma, weight=class_weights)
+        self.focal_loss = FocalLoss(alpha=2, gamma=gamma, weight=class_weights)  # Higher alpha & gamma
         self.dice_loss = DiceLoss()
         self.boundary_loss = BoundaryLoss()
         self.focal_weight = focal_weight
         self.dice_weight = dice_weight
         self.boundary_weight = boundary_weight
+        self.class_weights = class_weights
     
     def forward(self, inputs, targets):
         focal = self.focal_loss(inputs, targets)
         dice = self.dice_loss(inputs, targets)
         
-        # Skip boundary loss for faster training and focus on class balance
-        if self.boundary_weight > 0:
-            boundary = self.boundary_loss(inputs, targets)
-            return self.focal_weight * focal + self.dice_weight * dice + self.boundary_weight * boundary
-        else:
-            return self.focal_weight * focal + self.dice_weight * dice
+        # Add SLUM PENALTY - heavily penalize missing slums
+        slum_penalty = 0
+        slum_classes = [2, 3, 6]  # Classes 109, 111, 233 mapped to 2, 3, 6
+        
+        for slum_cls in slum_classes:
+            # If ground truth has slums but prediction doesn't - HEAVY penalty
+            gt_has_slum = (targets == slum_cls).any()
+            pred_has_slum = (inputs.argmax(dim=1) == slum_cls).any()
+            
+            if gt_has_slum and not pred_has_slum:
+                slum_penalty += 5.0  # MASSIVE penalty for missing slums
+        
+        return self.focal_weight * focal + self.dice_weight * dice + slum_penalty
 
 def calculate_metrics(pred, target, num_classes=7):
     """Calculate comprehensive metrics with proper handling"""
@@ -470,22 +483,22 @@ def main():
         except:
             print("⚠️ Model compilation skipped (T4 compatibility)")
     
-    # Comprehensive class weights based on analysis
-    print("🔍 Setting comprehensive urban analysis weights...")
-    # 0=Background, 105=Mixed Urban/Residential, 109=Informal Settlements (potential slums)
-    # 111=Secondary Slums (confirmed), 158=Bright Urban/Commercial, 200=Bright Urban/Commercial, 233=Primary Slums (confirmed)
-    # Higher weights for actual slum classes and rare background
-    class_weights = torch.tensor([15.0, 1.2, 1.5, 3.0, 1.0, 2.0, 4.0]).to(device)
+    # SLUM-FOCUSED class weights - FORCE slum detection
+    print("🔍 Setting AGGRESSIVE slum detection weights...")
+    # Classes 111 & 233 are CONFIRMED SLUMS - boost heavily
+    # Class 109 likely slums - boost moderately  
+    # Severely penalize non-slum predictions
+    class_weights = torch.tensor([5.0, 0.1, 2.0, 10.0, 0.1, 0.1, 15.0]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
-    # Class imbalance focused loss function
+    # SLUM-FOCUSED loss function - FORCE slum detection
     criterion = CombinedLoss(
-        focal_weight=0.7,  # Higher focal weight for rare classes
-        dice_weight=0.3,
-        boundary_weight=0.0,  # Disable for speed and focus
+        focal_weight=0.8,  # Massive focal weight
+        dice_weight=0.2,
+        boundary_weight=0.0,
         class_weights=class_weights,
-        gamma=3.0  # Higher gamma for harder examples
+        gamma=4.0  # Very high gamma for hard slum examples
     )
     
     # Optimized optimizer

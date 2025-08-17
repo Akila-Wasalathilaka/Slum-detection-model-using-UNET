@@ -46,28 +46,63 @@ class WaterDiscriminator:
         return water_mask > 0
     
     def detect_slum_texture(self, image):
-        """Detect slum-like high-frequency textures"""
+        """AGGRESSIVE slum texture detection"""
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        
+        # Multiple texture detection methods
+        # 1. High frequency texture
         texture = cv2.filter2D(gray, -1, np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]))
-        edges = cv2.Canny(gray, 50, 150)
+        high_texture = np.abs(texture) > 20  # Lower threshold
         
-        high_texture = np.abs(texture) > 30
-        edge_density = cv2.dilate(edges, np.ones((3, 3)), iterations=1) > 0
+        # 2. Edge density (slums have irregular edges)
+        edges = cv2.Canny(gray, 30, 100)  # Lower thresholds
+        edge_density = cv2.dilate(edges, np.ones((5, 5)), iterations=2) > 0
         
-        return high_texture & edge_density
+        # 3. Variance-based texture (slums have high local variance)
+        kernel = np.ones((5, 5), np.float32) / 25
+        mean = cv2.filter2D(gray.astype(np.float32), -1, kernel)
+        sqr_mean = cv2.filter2D((gray.astype(np.float32))**2, -1, kernel)
+        variance = sqr_mean - mean**2
+        high_variance = variance > 200  # Slums have high variance
+        
+        # 4. Color analysis - slums often have mixed/irregular colors
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        # Low saturation, medium brightness often indicates slums
+        slum_color = (hsv[:,:,1] < 100) & (hsv[:,:,2] > 50) & (hsv[:,:,2] < 180)
+        
+        # Combine all indicators - if ANY indicate slum texture, mark as slum
+        slum_indicators = high_texture | edge_density | high_variance | slum_color
+        
+        # Clean up with morphology
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        slum_indicators = cv2.morphologyEx(slum_indicators.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+        
+        return slum_indicators.astype(bool)
     
     def post_process(self, image, prediction):
-        """Apply water/slum discrimination"""
-        water_regions = self.detect_water_regions(image)
+        """AGGRESSIVE slum detection post-processing"""
         slum_texture = self.detect_slum_texture(image)
         
         corrected = prediction.copy()
         
-        # Fix water misclassified as slum
-        for slum_class in [1, 2, 3, 4, 5, 6]:
-            slum_mask = (prediction == slum_class)
-            water_slum_overlap = slum_mask & water_regions & (~slum_texture)
-            corrected[water_slum_overlap] = 0  # Change to background
+        # FORCE slum detection - convert uncertain areas to slums if they have slum texture
+        slum_classes = [2, 3, 6]  # Informal settlements, secondary slums, primary slums
+        non_slum_classes = [1, 4, 5]  # Mixed urban, commercial classes
+        
+        # Convert non-slum areas with slum texture to slums
+        for non_slum_cls in non_slum_classes:
+            non_slum_mask = (prediction == non_slum_cls)
+            # If area has slum texture, convert to informal settlements (class 2)
+            slum_conversion = non_slum_mask & slum_texture
+            corrected[slum_conversion] = 2  # Convert to informal settlements
+        
+        # Enhance existing slum predictions
+        for slum_cls in slum_classes:
+            slum_mask = (prediction == slum_cls)
+            # Expand slum areas slightly using morphology
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            expanded_slum = cv2.dilate(slum_mask.astype(np.uint8), kernel, iterations=1)
+            corrected[expanded_slum == 1] = slum_cls
         
         return corrected
 
