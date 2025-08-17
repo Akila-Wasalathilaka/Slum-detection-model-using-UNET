@@ -440,6 +440,16 @@ def main():
         else:
             patience_counter += 1
         
+        # Early stopping check
+        if patience_counter >= CONFIG['EARLY_STOPPING_PATIENCE']:
+            print(f"Early stopping triggered at epoch {epoch+1}")
+            break
+        
+        # Additional early stopping if no improvement for many epochs
+        if epoch > 10 and val_acc < 0.1:  # If accuracy is very low after 10 epochs
+            print(f"Training stopped due to poor performance at epoch {epoch+1}")
+            break
+        
         # Early stopping
         if patience_counter >= CONFIG['EARLY_STOPPING_PATIENCE']:
             print(f"⏰ Early stopping triggered after {epoch+1} epochs")

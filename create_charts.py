@@ -61,7 +61,7 @@ class ChartGenerator:
                 from advanced_training import AdvancedUNet
                 
                 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                model = AdvancedUNet(encoder_name='efficientnet-b4', num_classes=7)
+                model = AdvancedUNet(encoder_name='efficientnet-b3', num_classes=7)
                 model.load_state_dict(torch.load(self.model_path, map_location=device))
                 model.to(device)
                 model.eval()
@@ -329,7 +329,7 @@ Imbalance Ratio: {max(counts)/min(counts):.1f}:1
         from albumentations.pytorch import ToTensorV2
         
         transform = A.Compose([
-            A.Resize(256, 256),
+            A.Resize(224, 224),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
@@ -430,7 +430,7 @@ Imbalance Ratio: {max(counts)/min(counts):.1f}:1
         from albumentations.pytorch import ToTensorV2
         
         transform = A.Compose([
-            A.Resize(256, 256),
+            A.Resize(224, 224),
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])

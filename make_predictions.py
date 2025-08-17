@@ -55,16 +55,16 @@ class AdvancedPredictor:
         
         # Setup transforms with TTA support
         self.transform = A.Compose([
-            A.Resize(320, 320),  # Match training resolution
+            A.Resize(224, 224),  # Match training resolution
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ToTensorV2()
         ])
         
         # Test-time augmentation transforms
         self.tta_transforms = [
-            A.Compose([A.Resize(320, 320), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
-            A.Compose([A.Resize(320, 320), A.HorizontalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
-            A.Compose([A.Resize(320, 320), A.VerticalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(224, 224), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(224, 224), A.HorizontalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
+            A.Compose([A.Resize(224, 224), A.VerticalFlip(p=1.0), A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ToTensorV2()]),
         ]
     
     def load_model(self):
@@ -76,7 +76,7 @@ class AdvancedPredictor:
             from advanced_training import AdvancedUNet
             
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = AdvancedUNet(encoder_name='efficientnet-b4', num_classes=7)
+            model = AdvancedUNet(encoder_name='efficientnet-b3', num_classes=7)
             
             if os.path.exists(self.model_path):
                 model.load_state_dict(torch.load(self.model_path, map_location=device))
