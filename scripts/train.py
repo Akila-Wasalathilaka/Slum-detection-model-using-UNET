@@ -346,42 +346,27 @@ def main():
     )
     
     if len(train_dataset) == 0 or len(val_dataset) == 0:
-        print("❌ No valid samples found in dataset!")
-        return
-    
-    # Create data loaders
-    data_loaders = create_data_loaders(
-        train_dataset=train_dataset,
-        val_dataset=val_dataset,
-        batch_size=training_config.batch_size,
-        num_workers=training_config.num_workers,
-        pin_memory=training_config.pin_memory,
-        use_weighted_sampling=training_config.use_weighted_sampling
-    )
-    
-    # Create model
-    print("🏗️  Creating model...")
-    model = create_model(
-        architecture=model_config.architecture,
-        encoder=model_config.encoder,
-        pretrained=model_config.pretrained,
-        num_classes=model_config.num_classes
-    )
-    model = model.to(device)
-    
-    # Calculate model parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Model Parameters: {total_params:,} total, {trainable_params:,} trainable")
-    
-    # Create loss function with class weights
-    class_weights = train_dataset.get_class_weights()
-    if training_config.class_weights:
-        class_weights.update(training_config.class_weights)
-    
-    criterion = create_loss(
-        loss_type=training_config.loss_type,
-        class_weights=class_weights,
+                # Generate predictions using inference script
+                print(f"\n🔮 Generating predictions with inference.py ...")
+                import subprocess
+                from pathlib import Path
+                import os
+                test_images_dir = str(Path(data_config.data_root) / "test" / "images")
+                if not Path(test_images_dir).exists():
+                    test_images_dir = "data/test/images"
+                pred_output_dir = str(exp_dir / "advanced_predictions")
+                os.makedirs(pred_output_dir, exist_ok=True)
+                result = subprocess.run([
+                    sys.executable, "scripts/inference.py",
+                    "--checkpoint", str(best_checkpoint),
+                    "--input", test_images_dir,
+                    "--output", pred_output_dir,
+                    "--config", args.model,
+                    "--threshold", "0.5"
+                ], capture_output=True, text=True)
+                print(result.stdout)
+                if result.stderr:
+                    print("STDERR:", result.stderr)
         **training_config.loss_params
     )
     
@@ -541,6 +526,8 @@ def main():
         # Generate advanced predictions
         print(f"\n🔮 Generating advanced predictions...")
         try:
+            # Try to import from colombo directory
+            sys.path.append(str(project_root / "colombo"))
             from advanced_slum_detection import AdvancedSlumDetector
             
             # Create advanced predictions directory
