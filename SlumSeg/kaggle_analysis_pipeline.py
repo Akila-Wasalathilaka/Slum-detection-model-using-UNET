@@ -32,17 +32,8 @@ print("=" * 45)
 print(f"Python: {sys.version}")
 run_cmd("nvidia-smi", "Checking GPU")
 
-# Clone repository (replace with your actual repo URL)
-REPO_URL = "https://github.com/YOUR-USERNAME/SlumSeg.git"  # UPDATE THIS!
-print(f"\n📥 Cloning repository from {REPO_URL}")
-
-if not os.path.exists("/kaggle/working/SlumSeg"):
-    run_cmd(f"cd /kaggle/working && git clone {REPO_URL}", "Cloning SlumSeg repository")
-else:
-    print("✅ Repository already exists")
-
-# Change to project directory
-os.chdir("/kaggle/working/SlumSeg")
+# Repository already cloned, just change directory
+print("📁 Using existing repository")
 print(f"📁 Working directory: {os.getcwd()}")
 
 # =============================================================================
@@ -85,7 +76,7 @@ analysis_config = {
     'project_name': 'SlumSeg_Analysis',
     
     'data': {
-        'root': '/kaggle/input/YOUR-DATASET-NAME',  # UPDATE THIS!
+        'root': '/kaggle/input/slum-detection-dataset',  # UPDATE THIS!
         'images_dir': 'images',
         'masks_dir': 'masks',
         'tile_size': 512,
@@ -153,7 +144,7 @@ print("   2. Add it as a dataset or upload to /kaggle/input/")
 print("   3. Update the MODEL_PATH below")
 
 # Model path - UPDATE THIS!
-MODEL_PATH = "/kaggle/input/your-trained-model/best.ckpt"  # UPDATE THIS!
+MODEL_PATH = "/kaggle/input/trained-model/best.ckpt"  # UPDATE THIS!
 
 # Check if model exists
 model_path = Path(MODEL_PATH)

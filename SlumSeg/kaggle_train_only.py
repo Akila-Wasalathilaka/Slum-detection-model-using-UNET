@@ -31,17 +31,8 @@ print("=" * 40)
 print(f"Python: {sys.version}")
 run_cmd("nvidia-smi", "Checking GPU")
 
-# Clone repository (replace with your actual repo URL)
-REPO_URL = "https://github.com/YOUR-USERNAME/SlumSeg.git"  # UPDATE THIS!
-print(f"\n📥 Cloning repository from {REPO_URL}")
-
-if not os.path.exists("/kaggle/working/SlumSeg"):
-    run_cmd(f"cd /kaggle/working && git clone {REPO_URL}", "Cloning SlumSeg repository")
-else:
-    print("✅ Repository already exists")
-
-# Change to project directory
-os.chdir("/kaggle/working/SlumSeg")
+# Repository already cloned, just change directory
+print("📁 Using existing repository")
 print(f"📁 Working directory: {os.getcwd()}")
 
 # =============================================================================
@@ -84,7 +75,7 @@ training_config = {
     'project_name': 'SlumSeg_Kaggle',
     
     'data': {
-        'root': '/kaggle/input/YOUR-DATASET-NAME',  # UPDATE THIS!
+        'root': '/kaggle/input/slum-detection-dataset',  # UPDATE THIS!
         'images_dir': 'images',
         'masks_dir': 'masks',
         'tile_size': 512,
