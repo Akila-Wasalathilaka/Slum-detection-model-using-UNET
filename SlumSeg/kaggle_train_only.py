@@ -75,7 +75,7 @@ training_config = {
     'project_name': 'SlumSeg_Kaggle',
     
     'data': {
-        'root': '/kaggle/input/data',
+        'root': '/kaggle/working/Slum-detection-model-using-UNET/SlumSeg/data',
         'images_dir': 'images',
         'masks_dir': 'masks',
         'tile_size': 512,
@@ -172,7 +172,7 @@ print("\n🔍 Quick Dataset Verification")
 print("=" * 30)
 
 # Check for dataset in multiple possible locations
-dataset_paths = ['/kaggle/input/data', '/kaggle/input/slum-detection-using-unet-architecture/data', '../data']
+dataset_paths = ['/kaggle/working/Slum-detection-model-using-UNET/SlumSeg/data', '/kaggle/input/data', '../data']
 dataset_path = None
 
 for path in dataset_paths:
