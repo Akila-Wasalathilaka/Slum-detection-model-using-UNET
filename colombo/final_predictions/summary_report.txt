@@ -1,0 +1,17 @@
+COLOMBO SLUM DETECTION SUMMARY REPORT
+==================================================
+
+Total tiles analyzed: 50
+High-confidence detections: 5
+Average max probability: 0.1464
+Maximum probability found: 0.6618
+Average slum pixels: 12.2
+Tiles with slums detected (>0.5): 2
+
+HIGH-CONFIDENCE DETECTIONS:
+------------------------------
+colombo_tile_0023.png          | Max: 0.6618 | Slum pixels: 611
+colombo_tile_0003.png          | Max: 0.5120 | Slum pixels: 1
+colombo_tile_0034.png          | Max: 0.3824 | Slum pixels: 0
+colombo_tile_0014.png          | Max: 0.3280 | Slum pixels: 0
+colombo_tile_0024.png          | Max: 0.3257 | Slum pixels: 0
