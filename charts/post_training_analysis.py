@@ -238,6 +238,13 @@ def auto_find_latest_checkpoint(experiments_dir="experiments"):
                     checkpoint_files.append(ckpt_file)
     
     if not checkpoint_files:
+        # Also check for common checkpoint patterns
+        all_checkpoints = list(experiments_path.glob("*/checkpoints/*.pth"))
+        all_checkpoints.extend(list(experiments_path.glob("*/*.pth")))
+        all_checkpoints.extend(list(experiments_path.glob("*.pth")))
+        checkpoint_files = [f for f in all_checkpoints if f.is_file()]
+    
+    if not checkpoint_files:
         return None
     
     # Return the most recent checkpoint

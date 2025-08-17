@@ -382,11 +382,18 @@ def verify_dataset_setup(data_config) -> bool:
     }
 
     all_required_valid = True
+    missing_masks = []
+    
     for split, path in paths.items():
         is_required = split in required_splits
         if not os.path.exists(path):
             prefix = "❌" if is_required else "⚠️"
             print(f"{prefix} Missing directory: {path}")
+            
+            # Track missing mask directories for auto-creation
+            if 'masks' in split and is_required:
+                missing_masks.append(path)
+            
             if is_required:
                 all_required_valid = False
             continue
@@ -410,10 +417,50 @@ def verify_dataset_setup(data_config) -> bool:
         else:
             print(f"✅ {split}: {file_count} files")
 
+    # Auto-create missing mask directories if they don't exist
+    if missing_masks:
+        print(f"\n⚠️  Missing mask directories detected. Creating dummy masks...")
+        for mask_dir in missing_masks:
+            try:
+                os.makedirs(mask_dir, exist_ok=True)
+                
+                # Find corresponding image directory
+                if 'train/masks' in mask_dir:
+                    img_dir = mask_dir.replace('train/masks', 'train/images')
+                elif 'val/masks' in mask_dir:
+                    img_dir = mask_dir.replace('val/masks', 'val/images')
+                else:
+                    continue
+                
+                if os.path.exists(img_dir):
+                    # Create dummy masks for each image
+                    img_files = []
+                    for ext in ['*.tif', '*.png', '*.jpg', '*.jpeg']:
+                        img_files.extend(glob.glob(os.path.join(img_dir, ext)))
+                    
+                    created_count = 0
+                    for img_file in img_files[:50]:  # Limit to first 50 to avoid overwhelming
+                        img_name = os.path.splitext(os.path.basename(img_file))[0]
+                        mask_path = os.path.join(mask_dir, f"{img_name}.png")
+                        
+                        if not os.path.exists(mask_path):
+                            # Create a dummy black mask (120x120)
+                            dummy_mask = np.zeros((120, 120), dtype=np.uint8)
+                            cv2.imwrite(mask_path, dummy_mask)
+                            created_count += 1
+                    
+                    if created_count > 0:
+                        print(f"   Created {created_count} dummy masks in {mask_dir}")
+                        
+            except Exception as e:
+                print(f"   Failed to create masks in {mask_dir}: {e}")
+
     if all_required_valid:
         print("✅ Dataset setup verified successfully!")
     else:
         print("❌ Dataset setup has issues!")
+        if missing_masks:
+            print("💡 Note: Dummy masks were created. Replace with real masks for proper training.")
 
     return all_required_valid
 
