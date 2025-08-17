@@ -1,190 +1,95 @@
 # SlumSeg Kaggle Pipelines
 
-Two separate pipelines for running SlumSeg on Kaggle T4 GPU:
+## 🚂 Pipeline 1: Training Only
 
-## 🚂 Pipeline 1: Training Only (`kaggle_train_only.py`)
+```python
+# 1. Clone repo
+import os, subprocess
+os.chdir('/kaggle/working')
+subprocess.run('git clone https://github.com/YOUR-ORG/SlumSeg.git', shell=True)
+os.chdir('SlumSeg')
 
-**Purpose**: Train the slum segmentation model from scratch
-**Time**: ~20-30 minutes on T4
-**Output**: Trained model checkpoints
+# 2. Install dependencies
+subprocess.run('pip install -r requirements.txt --no-input', shell=True)
 
-### Steps:
-1. Create new Kaggle notebook
-2. Copy code from `kaggle_train_only.py`
-3. Update these variables:
-   ```python
-   REPO_URL = "https://github.com/YOUR-USERNAME/SlumSeg.git"
-   training_config['data']['root'] = '/kaggle/input/YOUR-DATASET-NAME'
+# 3. Update config for Kaggle
+import yaml
+with open('configs/default.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+config['data']['root'] = '/kaggle/input/YOUR-DATASET-NAME'
+config['train']['batch_size'] = 8
+config['train']['epochs'] = 15
+with open('configs/kaggle.yaml', 'w') as f:
+    yaml.dump(config, f)
+
+# 4. Train model
+subprocess.run('python scripts/train.py --config configs/kaggle.yaml', shell=True)
+
+# 5. Package results
+import zipfile
+with zipfile.ZipFile('trained_model.zip', 'w') as z:
+    for f in os.listdir('outputs/checkpoints'):
+        z.write(f'outputs/checkpoints/{f}', f'checkpoints/{f}')
+print("✅ Download trained_model.zip from Output panel")
+```
+
+## 📊 Pipeline 2: Analysis & Evaluation
+
+```python
+# 1. Clone repo
+import os, subprocess
+os.chdir('/kaggle/working')
+subprocess.run('git clone https://github.com/YOUR-ORG/SlumSeg.git', shell=True)
+os.chdir('SlumSeg')
+
+# 2. Install dependencies
+subprocess.run('pip install -r requirements.txt --no-input', shell=True)
+
+# 3. Update config
+import yaml
+with open('configs/default.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+config['data']['root'] = '/kaggle/input/YOUR-DATASET-NAME'
+with open('configs/kaggle.yaml', 'w') as f:
+    yaml.dump(config, f)
+
+# 4. Run analysis pipeline
+MODEL_PATH = '/kaggle/input/your-model/best.ckpt'  # UPDATE THIS
+
+# Dataset analysis
+subprocess.run('python scripts/analyze_dataset.py --config configs/kaggle.yaml --out outputs/charts', shell=True)
+
+# Model evaluation (if model exists)
+if os.path.exists(MODEL_PATH):
+    subprocess.run(f'python scripts/evaluate.py --config configs/kaggle.yaml --ckpt {MODEL_PATH} --tiles . --charts outputs/charts', shell=True)
+    subprocess.run(f'python scripts/infer.py --config configs/kaggle.yaml --ckpt {MODEL_PATH} --images /kaggle/input/YOUR-DATASET-NAME/val/images --out outputs/predictions --num 20', shell=True)
+
+# 5. Package results
+import zipfile
+with zipfile.ZipFile('analysis_results.zip', 'w') as z:
+    for root, dirs, files in os.walk('outputs'):
+        for file in files:
+            file_path = os.path.join(root, file)
+            z.write(file_path, file_path.replace('outputs/', ''))
+print("✅ Download analysis_results.zip from Output panel")
+```
+
+## 🔧 Setup Instructions
+
+1. **Update variables**:
+   - Replace `YOUR-ORG` with your GitHub username
+   - Replace `YOUR-DATASET-NAME` with your Kaggle dataset name
+   - Update `MODEL_PATH` in Pipeline 2
+
+2. **Dataset structure**:
    ```
-4. Add your dataset to Kaggle
-5. Run all cells
-6. Download `slumseg_trained_model_YYYYMMDD_HHMMSS.zip`
-
-### What you get:
-- ✅ Trained model checkpoints (`best.ckpt`, `last.ckpt`)
-- ✅ Training configuration
-- ✅ Training logs
-- ✅ Model ready for inference
-
----
-
-## 📊 Pipeline 2: Analysis & Evaluation (`kaggle_analysis_pipeline.py`)
-
-**Purpose**: Analyze dataset + evaluate trained model + generate predictions
-**Time**: ~15-20 minutes on T4
-**Output**: 20 charts + 20 prediction overlays
-
-### Steps:
-1. Create new Kaggle notebook
-2. Copy code from `kaggle_analysis_pipeline.py`
-3. Update these variables:
-   ```python
-   REPO_URL = "https://github.com/YOUR-USERNAME/SlumSeg.git"
-   analysis_config['data']['root'] = '/kaggle/input/YOUR-DATASET-NAME'
-   MODEL_PATH = "/kaggle/input/your-trained-model/best.ckpt"
+   your-dataset/
+   ├── train/images/*.tif
+   ├── train/masks/*.tif
+   ├── val/images/*.tif
+   └── val/masks/*.tif
    ```
-4. Add your dataset to Kaggle
-5. Upload your trained model checkpoint
-6. Run all cells
-7. Download `slumseg_complete_analysis_YYYYMMDD_HHMMSS.zip`
 
-### What you get:
-- ✅ **20 Analysis Charts**:
-  - Charts 1-6: Dataset analysis (structure, distribution, samples)
-  - Charts 7-15: Model evaluation (metrics, ROC, confusion matrix)
-  - Charts 16-20: Additional analysis (architecture, performance, deployment)
-- ✅ **20 Prediction Overlays**: Red slum areas on satellite imagery
-- ✅ Comprehensive analysis report
-
----
-
-## 🔄 Recommended Workflow
-
-### Option A: Full Pipeline (Separate Notebooks)
-1. **First**: Run training pipeline → Get trained model
-2. **Second**: Run analysis pipeline → Get charts + predictions
-
-### Option B: Training Only
-1. Run training pipeline
-2. Use trained model in your own inference code
-
-### Option C: Analysis Only
-1. Upload pre-trained model
-2. Run analysis pipeline for evaluation
-
----
-
-## 📋 Prerequisites
-
-### Dataset Structure
-Your Kaggle dataset should have this structure:
-```
-your-dataset/
-├── train/
-│   ├── images/
-│   │   ├── image1.tif
-│   │   └── image2.tif
-│   └── masks/
-│       ├── image1.tif  # 0=background, 1=slum
-│       └── image2.tif
-├── val/           # Optional
-│   ├── images/
-│   └── masks/
-└── test/          # Optional
-    ├── images/
-    └── masks/
-```
-
-### Model Upload (for Analysis Pipeline)
-- Upload your `.ckpt` file as a Kaggle dataset
-- Or add it to `/kaggle/input/` directory
-- Update `MODEL_PATH` in the analysis script
-
----
-
-## ⚙️ Configuration
-
-### Training Pipeline Settings
-- **Epochs**: 20 (good for T4 time limits)
-- **Batch Size**: 12 (optimized for T4 16GB)
-- **Model**: UNet + ResNet34 (speed/accuracy balance)
-- **Optimizations**: AMP, channels_last, gradient checkpointing
-
-### Analysis Pipeline Settings
-- **Predictions**: 20 overlays with TTA
-- **Charts**: 20 comprehensive analysis charts
-- **Threshold**: 0.45 (optimized for slum detection)
-- **Post-processing**: Morphological operations enabled
-
----
-
-## 🎯 Expected Results
-
-### Training Pipeline Output
-```
-slumseg_trained_model_20240101_120000.zip
-├── checkpoints/
-│   ├── best.ckpt      # Best validation model
-│   ├── last.ckpt      # Final epoch model
-│   └── epoch_XX.ckpt  # Intermediate checkpoints
-├── training_config.yaml
-├── logs/              # Training logs
-└── README.txt         # Usage instructions
-```
-
-### Analysis Pipeline Output
-```
-slumseg_complete_analysis_20240101_120000.zip
-├── charts/
-│   ├── 01_dataset_overview.png
-│   ├── 02_image_properties.png
-│   ├── ...
-│   └── 20_deployment_readiness.png
-├── predictions/
-│   ├── pred_01.png    # Red overlay predictions
-│   ├── pred_02.png
-│   ├── ...
-│   ├── pred_20.png
-│   ├── prob_01.png    # Probability maps
-│   └── ...
-├── analysis_config.yaml
-└── README.txt
-```
-
----
-
-## 🚨 Important Notes
-
-1. **Update URLs**: Replace `YOUR-USERNAME` and `YOUR-DATASET-NAME`
-2. **GPU Time**: Each pipeline uses ~20-30 minutes of T4 time
-3. **Memory**: Optimized for T4 16GB GPU memory
-4. **Internet**: Required for cloning repository and installing packages
-5. **Dataset Size**: Works best with datasets < 5GB for Kaggle limits
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues:
-- **"Dataset not found"**: Update `data.root` path in config
-- **"Model not found"**: Update `MODEL_PATH` in analysis pipeline
-- **"Out of memory"**: Reduce `batch_size` in config
-- **"Time limit exceeded"**: Reduce `epochs` or use smaller model
-
-### Performance Tips:
-- Use smaller tile sizes (256x256) for faster processing
-- Reduce number of predictions if needed
-- Skip TTA for faster inference
-- Use `efficientnet_b0` instead of `resnet34` for speed
-
----
-
-## 📞 Support
-
-If you encounter issues:
-1. Check the error messages in Kaggle logs
-2. Verify dataset structure and paths
-3. Ensure model checkpoint is uploaded correctly
-4. Check GPU memory usage in Kaggle
-
-Happy slum detection! 🏠✨
+3. **Run**:
+   - Copy Pipeline 1 code → Train model → Download `trained_model.zip`
+   - Copy Pipeline 2 code → Generate analysis → Download `analysis_results.zip`
