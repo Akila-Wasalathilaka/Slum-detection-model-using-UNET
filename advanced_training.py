@@ -62,17 +62,16 @@ class AdvancedSlumDataset(Dataset):
         print(f"📊 Optimized Dataset: {len(self.image_paths)} samples")
     
     def _compute_sample_weights(self):
-        """AGGRESSIVE slum sample weighting"""
+        """BALANCED sample weighting"""
         weights = []
         for mask_path in self.mask_paths:
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             unique_classes = np.unique(mask)
-            # MASSIVELY boost slum samples
-            weight = 0.1  # Start very low
-            if 233 in unique_classes: weight = 10.0  # PRIMARY SLUMS - highest priority
-            elif 111 in unique_classes: weight = 8.0  # SECONDARY SLUMS - high priority
-            elif 109 in unique_classes: weight = 5.0  # POTENTIAL SLUMS - medium priority
-            elif 0 in unique_classes: weight = 2.0   # Background
+            # Moderate boost for slum samples
+            weight = 1.0
+            if 233 in unique_classes: weight = 2.0  # PRIMARY SLUMS
+            elif 111 in unique_classes: weight = 1.8  # SECONDARY SLUMS
+            elif 109 in unique_classes: weight = 1.5  # POTENTIAL SLUMS
             weights.append(weight)
         return weights
     
@@ -147,12 +146,13 @@ class AttentionBlock(nn.Module):
         return x * attention
 
 class AdvancedUNet(nn.Module):
-    """Urban land use classification U-Net with slum focus"""
+    """SIMPLE U-Net focused on slum detection"""
     
-    def __init__(self, encoder_name='efficientnet-b2', num_classes=7, encoder_weights='imagenet'):
+    def __init__(self, encoder_name='efficientnet-b1', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
         
-        self.backbone = smp.UnetPlusPlus(
+        # Use simple U-Net instead of complex UNet++
+        self.backbone = smp.Unet(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=3,
@@ -160,21 +160,8 @@ class AdvancedUNet(nn.Module):
             activation=None,
         )
         
-        # Urban texture enhancement for better discrimination
-        self.urban_enhancer = nn.Sequential(
-            nn.Conv2d(num_classes, 32, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, num_classes, 1),
-            nn.Sigmoid()
-        )
-        
-        # Slum-specific attention (classes 2, 3, 6 = informal settlements and slums)
-        self.slum_attention = nn.Sequential(
-            nn.Conv2d(num_classes, 16, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(16, 3, 1),  # 3 channels for slum-related classes
-            nn.Sigmoid()
-        )
+        # Simple dropout for regularization
+        self.dropout = nn.Dropout2d(0.1)
         
         # Initialize weights for faster convergence
         self._initialize_weights()
@@ -190,29 +177,11 @@ class AdvancedUNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
     
     def forward(self, x):
-        # Clone input to avoid CUDA graph issues
+        # Simple forward pass
         x = x.clone()
-        base_output = self.backbone(x)
-        
-        # Enhance urban textures
-        urban_weights = self.urban_enhancer(base_output)
-        enhanced_output = base_output * (1 + urban_weights * 0.3)
-        
-        # Apply AGGRESSIVE slum-specific attention
-        slum_attention_weights = self.slum_attention(enhanced_output)
-        
-        final_output = enhanced_output.clone()
-        # MASSIVELY boost slum classes - FORCE detection
-        final_output[:, 2:3] = enhanced_output[:, 2:3] * (1 + slum_attention_weights[:, 0:1] * 1.0)  # 2x boost
-        final_output[:, 3:4] = enhanced_output[:, 3:4] * (1 + slum_attention_weights[:, 1:2] * 1.5)  # 2.5x boost  
-        final_output[:, 6:7] = enhanced_output[:, 6:7] * (1 + slum_attention_weights[:, 2:3] * 2.0)  # 3x boost
-        
-        # Suppress non-slum classes
-        final_output[:, 1:2] = enhanced_output[:, 1:2] * 0.5  # Suppress mixed urban
-        final_output[:, 4:5] = enhanced_output[:, 4:5] * 0.3  # Suppress commercial
-        final_output[:, 5:6] = enhanced_output[:, 5:6] * 0.3  # Suppress commercial-2
-        
-        return final_output
+        output = self.backbone(x)
+        output = self.dropout(output)
+        return output
 
 class FocalLoss(nn.Module):
     """Focal Loss for handling class imbalance"""
@@ -264,36 +233,22 @@ class BoundaryLoss(nn.Module):
         
         return (boundary_loss_x + boundary_loss_y) / 2
 
-class CombinedLoss(nn.Module):
-    """SLUM-FOCUSED Loss - Force slum detection"""
+class SimpleDiceLoss(nn.Module):
+    """Simple Dice Loss for better segmentation"""
     
-    def __init__(self, focal_weight=0.8, dice_weight=0.2, boundary_weight=0.0, class_weights=None, gamma=4.0):
-        super(CombinedLoss, self).__init__()
-        self.focal_loss = FocalLoss(alpha=2, gamma=gamma, weight=class_weights)  # Higher alpha & gamma
-        self.dice_loss = DiceLoss()
-        self.boundary_loss = BoundaryLoss()
-        self.focal_weight = focal_weight
-        self.dice_weight = dice_weight
-        self.boundary_weight = boundary_weight
-        self.class_weights = class_weights
+    def __init__(self, smooth=1e-6):
+        super(SimpleDiceLoss, self).__init__()
+        self.smooth = smooth
     
     def forward(self, inputs, targets):
-        focal = self.focal_loss(inputs, targets)
-        dice = self.dice_loss(inputs, targets)
+        inputs = F.softmax(inputs, dim=1)
+        targets_one_hot = F.one_hot(targets, num_classes=inputs.size(1)).permute(0, 3, 1, 2).float()
         
-        # Add SLUM PENALTY - heavily penalize missing slums
-        slum_penalty = 0
-        slum_classes = [2, 3, 6]  # Classes 109, 111, 233 mapped to 2, 3, 6
+        intersection = (inputs * targets_one_hot).sum(dim=(2, 3))
+        union = inputs.sum(dim=(2, 3)) + targets_one_hot.sum(dim=(2, 3))
         
-        for slum_cls in slum_classes:
-            # If ground truth has slums but prediction doesn't - HEAVY penalty
-            gt_has_slum = (targets == slum_cls).any()
-            pred_has_slum = (inputs.argmax(dim=1) == slum_cls).any()
-            
-            if gt_has_slum and not pred_has_slum:
-                slum_penalty += 5.0  # MASSIVE penalty for missing slums
-        
-        return self.focal_weight * focal + self.dice_weight * dice + slum_penalty
+        dice = (2 * intersection + self.smooth) / (union + self.smooth)
+        return 1 - dice.mean()
 
 def calculate_metrics(pred, target, num_classes=7):
     """Calculate comprehensive metrics with proper handling"""
@@ -430,8 +385,8 @@ def main():
     CONFIG = {
         'IMG_SIZE': 224,  # Reduced for T4 compatibility
         'BATCH_SIZE': 4,  # Further reduced for stability
-        'EPOCHS': 25,     # Reduced with better convergence
-        'LEARNING_RATE': 1e-4,  # Reduced LR for stability
+        'EPOCHS': 40,     # More epochs for proper learning
+        'LEARNING_RATE': 3e-4,  # Higher LR for faster learning
         'ENCODER': 'efficientnet-b1',  # Smaller for T4
         'USE_MIXED_PRECISION': True,
         'COMPILE_MODEL': False,  # Disabled for T4 compatibility
@@ -457,16 +412,10 @@ def main():
     val_dataset = AdvancedSlumDataset('data/val/images', 'data/val/masks', 
                                      transform=val_transform, is_train=False)
     
-    # Class-balanced data loaders
-    if hasattr(train_dataset, 'sample_weights'):
-        sampler = WeightedRandomSampler(train_dataset.sample_weights, len(train_dataset))
-        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                                 sampler=sampler, num_workers=CONFIG['NUM_WORKERS'], 
-                                 pin_memory=False, persistent_workers=False)
-    else:
-        train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
-                                 shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
-                                 pin_memory=False, persistent_workers=False)
+    # Simple data loaders - no complex sampling
+    train_loader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], 
+                             shuffle=True, num_workers=CONFIG['NUM_WORKERS'], 
+                             pin_memory=False, persistent_workers=False)
     
     val_loader = DataLoader(val_dataset, batch_size=CONFIG['BATCH_SIZE'], 
                            shuffle=False, num_workers=CONFIG['NUM_WORKERS'], 
@@ -483,35 +432,21 @@ def main():
         except:
             print("⚠️ Model compilation skipped (T4 compatibility)")
     
-    # SLUM-FOCUSED class weights - FORCE slum detection
-    print("🔍 Setting AGGRESSIVE slum detection weights...")
-    # Classes 111 & 233 are CONFIRMED SLUMS - boost heavily
-    # Class 109 likely slums - boost moderately  
-    # Severely penalize non-slum predictions
-    class_weights = torch.tensor([5.0, 0.1, 2.0, 10.0, 0.1, 0.1, 15.0]).to(device)
+    # BALANCED class weights - let model learn naturally
+    print("🔍 Setting BALANCED class weights...")
+    # Don't force - let model learn the patterns
+    class_weights = torch.tensor([2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 3.0]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
-    # SLUM-FOCUSED loss function - FORCE slum detection
-    criterion = CombinedLoss(
-        focal_weight=0.8,  # Massive focal weight
-        dice_weight=0.2,
-        boundary_weight=0.0,
-        class_weights=class_weights,
-        gamma=4.0  # Very high gamma for hard slum examples
-    )
+    # SIMPLE loss function - standard cross entropy + dice
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     
-    # Optimized optimizer
-    optimizer = torch.optim.AdamW(model.parameters(), lr=CONFIG['LEARNING_RATE'], 
-                                 weight_decay=1e-4, betas=(0.9, 0.999), eps=1e-8, 
-                                 fused=True if torch.cuda.is_available() else False)
+    # Simple optimizer and scheduler
+    optimizer = torch.optim.Adam(model.parameters(), lr=CONFIG['LEARNING_RATE'], weight_decay=1e-4)
     
-    # Faster convergence scheduler
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=CONFIG['LEARNING_RATE'], 
-        epochs=CONFIG['EPOCHS'], steps_per_epoch=len(train_loader),
-        pct_start=0.1, anneal_strategy='cos'
-    )
+    # Simple step scheduler
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
     
     # Mixed precision scaler
     scaler = torch.cuda.amp.GradScaler() if CONFIG['USE_MIXED_PRECISION'] else None
