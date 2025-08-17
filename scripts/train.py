@@ -346,27 +346,32 @@ def main():
     )
     
     if len(train_dataset) == 0 or len(val_dataset) == 0:
-                # Generate predictions using inference script
-                print(f"\n🔮 Generating predictions with inference.py ...")
-                import subprocess
-                from pathlib import Path
-                import os
-                test_images_dir = str(Path(data_config.data_root) / "test" / "images")
-                if not Path(test_images_dir).exists():
-                    test_images_dir = "data/test/images"
-                pred_output_dir = str(exp_dir / "advanced_predictions")
-                os.makedirs(pred_output_dir, exist_ok=True)
-                result = subprocess.run([
-                    sys.executable, "scripts/inference.py",
-                    "--checkpoint", str(best_checkpoint),
-                    "--input", test_images_dir,
-                    "--output", pred_output_dir,
-                    "--config", args.model,
-                    "--threshold", "0.5"
-                ], capture_output=True, text=True)
-                print(result.stdout)
-                if result.stderr:
-                    print("STDERR:", result.stderr)
+        print("❌ Empty dataset! Cannot proceed with training.")
+        return
+    
+    # Create data loaders
+    data_loaders = create_data_loaders(
+        train_dataset=train_dataset,
+        val_dataset=val_dataset,
+        batch_size=training_config.batch_size,
+        num_workers=training_config.num_workers,
+        pin_memory=training_config.pin_memory,
+        use_weighted_sampling=training_config.use_weighted_sampling
+    )
+    
+    # Create model
+    print("🏗️  Creating model...")
+    model = create_model(
+        architecture=model_config.architecture,
+        encoder=model_config.encoder,
+        pretrained=model_config.pretrained,
+        num_classes=model_config.num_classes
+    )
+    model = model.to(device)
+    
+    # Create loss function
+    criterion = create_loss(
+        loss_type=training_config.loss_type,
         **training_config.loss_params
     )
     
