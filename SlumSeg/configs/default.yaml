@@ -1,0 +1,77 @@
+seed: 42
+project_name: "SlumSeg"
+
+# Data paths - updated for your structure
+data:
+  root: "../data"  # Relative path to data folder
+  images_dir: "images"
+  masks_dir: "masks"                    # 0=bg, 1=slum
+  tile_size: 512
+  tile_overlap: 64
+  train_regions_file: ""                # optional CSV for grouped split
+  val_ratio: 0.15
+  min_slum_px: 512                      # filter tiles with too few slum pixels
+  cache_dir: "cache"                    # for preprocessed tiles
+
+augment:
+  train:
+    hflip: 0.5
+    vflip: 0.2
+    rotate_deg: 10
+    brightness: 0.15
+    contrast: 0.15
+    blur: 0.1
+    cutout_prob: 0.2
+    cutout_max_holes: 8
+    cutout_max_h_size: 32
+    cutout_max_w_size: 32
+  valid: {}
+
+model:
+  arch: "unet"                          # unet, unet++, deeplabv3+
+  encoder: "resnet34"                   # resnet34, mobilenet_v2, efficientnet_b0/b3
+  pretrained: true
+  in_channels: 3
+  classes: 1
+
+loss:
+  name: "bce_dice"                      # bce_dice, focal_dice, tversky
+  pos_weight: null                      # auto-calculated from data if null
+  alpha: 0.7                           # for focal loss
+  gamma: 2.0                           # for focal loss
+  beta: 0.7                            # for tversky loss
+
+train:
+  epochs: 25
+  batch_size: 16
+  lr: 3e-4
+  weight_decay: 1e-4
+  scheduler: "onecycle"                 # onecycle, cosine, step
+  amp: true                            # automatic mixed precision
+  channels_last: true
+  grad_ckpt: true                      # gradient checkpointing
+  compile_mode: "reduce-overhead"       # torch.compile mode
+  num_workers: 6
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+  accumulate_grad_batches: 1
+  early_stopping_patience: 8
+  save_top_k: 3
+
+eval:
+  threshold: 0.5
+  tta: false                           # test time augmentation
+
+infer:
+  tta: true
+  threshold: 0.45
+  num_samples: 20
+  overlay_alpha: 0.4                   # transparency for red overlay
+  postprocess: true                    # morphological ops
+  
+# Hardware optimization
+hardware:
+  cudnn_benchmark: true
+  tf32: true
+  deterministic: false
