@@ -606,12 +606,15 @@ Issues: {len(analysis['issues'])}
         # 6. Summary statistics
         axes[1, 2].axis('off')
         
+        mean_acc = np.mean(accuracies) if accuracies else None
+        acc_text = f"{mean_acc:.3f}" if mean_acc is not None else "N/A"
+        
         summary_text = f"""
 PREDICTION SUMMARY
 {'='*20}
 
 Total Predictions: {len(predictions)}
-Mean Accuracy: {np.mean(accuracies):.3f if accuracies else 'N/A'}
+Mean Accuracy: {acc_text}
 Mean Confidence: {np.mean(confidences):.3f}
 Mean Low Confidence: {np.mean(low_conf_percentages):.1f}%
 
@@ -620,7 +623,7 @@ Most Common Class: {classes[mean_percentages.index(max(mean_percentages))]}
 Least Common Class: {classes[mean_percentages.index(min(mean_percentages))]}
 
 Performance Grade:
-{self.get_performance_grade(np.mean(accuracies) if accuracies else 0.5)}
+{self.get_performance_grade(mean_acc if mean_acc else 0.5)}
 
 Files Generated: {len(predictions)} images
 Output Directory: {self.output_dir}
