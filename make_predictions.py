@@ -202,15 +202,15 @@ class AdvancedPredictor:
         prediction = np.round(np.mean(predictions, axis=0)).astype(np.uint8)
         confidence = np.mean(confidences, axis=0)
         
-        # Apply water discrimination post-processing
-        prediction = self.water_discriminator.post_process(image, prediction)
-        
         # Resize prediction back to original size
         prediction_resized = cv2.resize(prediction.astype(np.uint8), 
                                        (original_size[1], original_size[0]), 
                                        interpolation=cv2.INTER_NEAREST)
         confidence_resized = cv2.resize(confidence, 
                                        (original_size[1], original_size[0]))
+        
+        # Apply water discrimination post-processing on resized prediction
+        prediction_resized = self.water_discriminator.post_process(image, prediction_resized)
         
         # Resize ground truth to match prediction if needed
         if ground_truth is not None and ground_truth.shape != prediction_resized.shape:
