@@ -81,15 +81,15 @@ class AdvancedPredictor:
         # Initialize water discriminator
         self.water_discriminator = WaterDiscriminator()
         
-        # Class information (mapped to 0-6)
+        # Comprehensive class names based on analysis
         self.class_names = {
             0: "Background",
-            1: "Slum Type A", 
-            2: "Slum Main Type",
-            3: "Slum Type B",
-            4: "Slum Type C",
-            5: "Slum Type D",
-            6: "Slum Type E"
+            1: "Mixed-Urban-Residential", 
+            2: "Informal-Settlements",
+            3: "Secondary-Slums",
+            4: "Bright-Urban-Commercial",
+            5: "Bright-Urban-Commercial-2",
+            6: "Primary-Slums"
         }
         
         self.class_colors = {

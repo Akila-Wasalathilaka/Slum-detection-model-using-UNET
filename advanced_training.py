@@ -55,23 +55,24 @@ class AdvancedSlumDataset(Dataset):
         # Pre-compute class mapping for speed
         self.class_mapping = {0: 0, 105: 1, 109: 2, 111: 3, 158: 4, 200: 5, 233: 6}
         
-        # Class balancing: Pre-compute sample weights for rare classes
+        # Slum-focused sample weights
         if is_train:
             self.sample_weights = self._compute_sample_weights()
         
         print(f"📊 Optimized Dataset: {len(self.image_paths)} samples")
     
     def _compute_sample_weights(self):
-        """Compute weights for each sample based on class rarity"""
+        """Compute weights based on comprehensive analysis"""
         weights = []
         for mask_path in self.mask_paths:
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             unique_classes = np.unique(mask)
-            # Higher weight for samples with rare classes
+            # Prioritize confirmed slum classes and rare classes
             weight = 1.0
-            if 0 in unique_classes: weight += 2.0  # Background boost
-            if 200 in unique_classes: weight += 1.5  # Rare slum type
-            if 233 in unique_classes: weight += 1.2  # Another rare type
+            if 233 in unique_classes: weight += 4.0  # Primary slums (confirmed)
+            if 111 in unique_classes: weight += 3.0  # Secondary slums (confirmed) 
+            if 109 in unique_classes: weight += 1.5  # Informal settlements (potential slums)
+            if 0 in unique_classes: weight += 2.0   # Background (very rare)
             weights.append(weight)
         return weights
     
@@ -146,7 +147,7 @@ class AttentionBlock(nn.Module):
         return x * attention
 
 class AdvancedUNet(nn.Module):
-    """Slum-optimized U-Net with class-specific features"""
+    """Urban land use classification U-Net with slum focus"""
     
     def __init__(self, encoder_name='efficientnet-b2', num_classes=7, encoder_weights='imagenet'):
         super(AdvancedUNet, self).__init__()
@@ -159,23 +160,21 @@ class AdvancedUNet(nn.Module):
             activation=None,
         )
         
-        # Slum texture enhancement
-        self.texture_enhancer = nn.Sequential(
+        # Urban texture enhancement for better discrimination
+        self.urban_enhancer = nn.Sequential(
             nn.Conv2d(num_classes, 32, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(32, num_classes, 1),
             nn.Sigmoid()
         )
         
-        # Class-specific attention for rare classes
-        self.class_attention = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv2d(1, 8, 3, padding=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(8, 1, 1),
-                nn.Sigmoid()
-            ) for _ in range(num_classes)
-        ])
+        # Slum-specific attention (classes 2, 3, 6 = informal settlements and slums)
+        self.slum_attention = nn.Sequential(
+            nn.Conv2d(num_classes, 16, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(16, 3, 1),  # 3 channels for slum-related classes
+            nn.Sigmoid()
+        )
         
         # Initialize weights for faster convergence
         self._initialize_weights()
@@ -195,16 +194,18 @@ class AdvancedUNet(nn.Module):
         x = x.clone()
         base_output = self.backbone(x)
         
-        # Enhance slum textures
-        texture_weights = self.texture_enhancer(base_output)
-        enhanced_output = base_output * (1 + texture_weights * 0.3)
+        # Enhance urban textures
+        urban_weights = self.urban_enhancer(base_output)
+        enhanced_output = base_output * (1 + urban_weights * 0.2)
         
-        # Apply class-specific attention for rare classes
+        # Apply slum-specific attention
+        slum_attention_weights = self.slum_attention(enhanced_output)
+        
         final_output = enhanced_output.clone()
-        for i, attention_layer in enumerate(self.class_attention):
-            class_map = enhanced_output[:, i:i+1]
-            attention = attention_layer(class_map)
-            final_output[:, i:i+1] = class_map * (1 + attention * 0.5)
+        # Boost slum-related classes (2=informal settlements, 3=secondary slums, 6=primary slums)
+        final_output[:, 2:3] = enhanced_output[:, 2:3] * (1 + slum_attention_weights[:, 0:1] * 0.4)
+        final_output[:, 3:4] = enhanced_output[:, 3:4] * (1 + slum_attention_weights[:, 1:2] * 0.5)
+        final_output[:, 6:7] = enhanced_output[:, 6:7] * (1 + slum_attention_weights[:, 2:3] * 0.6)
         
         return final_output
 
@@ -469,11 +470,12 @@ def main():
         except:
             print("⚠️ Model compilation skipped (T4 compatibility)")
     
-    # Class imbalance fix: Inverse frequency weights
-    print("🔍 Setting inverse frequency class weights...")
-    # Class distribution: [0.08%, 12.44%, 31.89%, 18.75%, 15.84%, 9.15%, 11.84%]
-    # Inverse weights to balance rare classes
-    class_weights = torch.tensor([50.0, 2.5, 1.0, 1.7, 2.0, 3.5, 2.7]).to(device)
+    # Comprehensive class weights based on analysis
+    print("🔍 Setting comprehensive urban analysis weights...")
+    # 0=Background, 105=Mixed Urban/Residential, 109=Informal Settlements (potential slums)
+    # 111=Secondary Slums (confirmed), 158=Bright Urban/Commercial, 200=Bright Urban/Commercial, 233=Primary Slums (confirmed)
+    # Higher weights for actual slum classes and rare background
+    class_weights = torch.tensor([15.0, 1.2, 1.5, 3.0, 1.0, 2.0, 4.0]).to(device)
     
     print(f"📊 Class weights: {class_weights}")
     
@@ -549,8 +551,16 @@ def main():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         
-        # Print class-wise metrics for validation with class names
-        class_names = {0: 'Background', 1: 'Slum-A', 2: 'Slum-Main', 3: 'Slum-B', 4: 'Slum-C', 5: 'Slum-D', 6: 'Slum-E'}
+        # Print class-wise metrics with comprehensive analysis results
+        class_names = {
+            0: 'Background', 
+            1: 'Mixed-Urban-Residential', 
+            2: 'Informal-Settlements', 
+            3: 'Secondary-Slums', 
+            4: 'Bright-Urban-Commercial', 
+            5: 'Bright-Urban-Commercial-2', 
+            6: 'Primary-Slums'
+        }
         print("📊 Validation Class Metrics:")
         for class_id, metrics in val_class_metrics.items():
             name = class_names.get(class_id, f'Class-{class_id}')
